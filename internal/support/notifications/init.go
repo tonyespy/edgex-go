@@ -18,26 +18,57 @@ import (
 	"context"
 	"sync"
 
+	"github.com/edgexfoundry/edgex-go/internal/pkg/v2/application/delegate"
+	"github.com/edgexfoundry/edgex-go/internal/pkg/v2/ui/common/middleware/debugging"
+	"github.com/edgexfoundry/edgex-go/internal/pkg/v2/ui/http/api/common"
+	"github.com/edgexfoundry/edgex-go/internal/pkg/v2/ui/http/routing"
+
+	"github.com/edgexfoundry/go-mod-bootstrap/bootstrap/container"
 	"github.com/edgexfoundry/go-mod-bootstrap/bootstrap/startup"
 	"github.com/edgexfoundry/go-mod-bootstrap/di"
+
+	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
 
 	"github.com/gorilla/mux"
 )
 
 // Bootstrap contains references to dependencies required by the BootstrapHandler.
 type Bootstrap struct {
-	router *mux.Router
+	muxRouter            *mux.Router
+	inDebugMode          bool
+	inAcceptanceTestMode bool
 }
 
 // NewBootstrap is a factory method that returns an initialized Bootstrap receiver struct.
-func NewBootstrap(router *mux.Router) *Bootstrap {
+func NewBootstrap(muxRouter *mux.Router, indDebugMode, inAcceptanceTestMode bool) *Bootstrap {
 	return &Bootstrap{
-		router: router,
+		muxRouter:            muxRouter,
+		inDebugMode:          indDebugMode,
+		inAcceptanceTestMode: inAcceptanceTestMode,
 	}
 }
 
 // BootstrapHandler fulfills the BootstrapHandler contract and performs initialization for the notifications service.
 func (b *Bootstrap) BootstrapHandler(_ context.Context, _ *sync.WaitGroup, _ startup.Timer, dic *di.Container) bool {
-	loadRestRoutes(b.router, dic)
+	loadV1Routes(b.muxRouter, dic)
+	b.loadV2Routes(dic, container.LoggingClientFrom(dic.Get))
 	return true
+}
+
+// loadV2Routes creates a new command-query router and handles the related mux.Router initialization for API V2 routes.
+func (b *Bootstrap) loadV2Routes(dic *di.Container, lc logger.LoggingClient) {
+	handlers := []delegate.Handler{}
+	if b.inDebugMode {
+		handlers = append(handlers, debugging.New(lc).Handler)
+	}
+
+	routing.Initialize(
+		dic,
+		b.muxRouter,
+		handlers,
+		common.V2Routes(
+			b.inAcceptanceTestMode,
+			[]routing.Controller{},
+		),
+	)
 }

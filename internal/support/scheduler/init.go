@@ -22,33 +22,44 @@ import (
 	"time"
 
 	"github.com/edgexfoundry/edgex-go/internal/pkg/bootstrap/container"
+	"github.com/edgexfoundry/edgex-go/internal/pkg/v2/application/delegate"
+	"github.com/edgexfoundry/edgex-go/internal/pkg/v2/ui/common/middleware/debugging"
+	"github.com/edgexfoundry/edgex-go/internal/pkg/v2/ui/http/api/common"
+	"github.com/edgexfoundry/edgex-go/internal/pkg/v2/ui/http/routing"
 	schedulerContainer "github.com/edgexfoundry/edgex-go/internal/support/scheduler/container"
 
 	bootstrapContainer "github.com/edgexfoundry/go-mod-bootstrap/bootstrap/container"
 	"github.com/edgexfoundry/go-mod-bootstrap/bootstrap/startup"
 	"github.com/edgexfoundry/go-mod-bootstrap/di"
 
+	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
+
 	"github.com/gorilla/mux"
 )
 
 // Bootstrap contains references to dependencies required by the BootstrapHandler.
 type Bootstrap struct {
-	router *mux.Router
+	muxRouter            *mux.Router
+	inDebugMode          bool
+	inAcceptanceTestMode bool
 }
 
 // NewBootstrap is a factory method that returns an initialized Bootstrap receiver struct.
-func NewBootstrap(router *mux.Router) *Bootstrap {
+func NewBootstrap(muxRouter *mux.Router, inDebugMode, inAcceptanceTestMode bool) *Bootstrap {
 	return &Bootstrap{
-		router: router,
+		muxRouter:            muxRouter,
+		inDebugMode:          inDebugMode,
+		inAcceptanceTestMode: inAcceptanceTestMode,
 	}
 }
 
 // BootstrapHandler fulfills the BootstrapHandler contract and performs initialization needed by the scheduler service.
 func (b *Bootstrap) BootstrapHandler(ctx context.Context, wg *sync.WaitGroup, _ startup.Timer, dic *di.Container) bool {
-	loadRestRoutes(b.router, dic)
-
 	lc := bootstrapContainer.LoggingClientFrom(dic.Get)
 	configuration := schedulerContainer.ConfigurationFrom(dic.Get)
+
+	loadV1Routes(b.muxRouter, dic)
+	b.loadV2Routes(dic, lc)
 
 	// add dependencies to bootstrapContainer
 	scClient := NewSchedulerQueueClient(lc)
@@ -76,4 +87,22 @@ func (b *Bootstrap) BootstrapHandler(ctx context.Context, wg *sync.WaitGroup, _ 
 	}()
 
 	return true
+}
+
+// loadV2Routes creates a new command-query router and handles the related mux.Router initialization for API V2 routes.
+func (b *Bootstrap) loadV2Routes(dic *di.Container, lc logger.LoggingClient) {
+	handlers := []delegate.Handler{}
+	if b.inDebugMode {
+		handlers = append(handlers, debugging.New(lc).Handler)
+	}
+
+	routing.Initialize(
+		dic,
+		b.muxRouter,
+		handlers,
+		common.V2Routes(
+			b.inAcceptanceTestMode,
+			[]routing.Controller{},
+		),
+	)
 }

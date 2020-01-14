@@ -21,6 +21,10 @@ import (
 	"github.com/edgexfoundry/edgex-go/internal"
 	"github.com/edgexfoundry/edgex-go/internal/pkg/config"
 	"github.com/edgexfoundry/edgex-go/internal/pkg/endpoint"
+	"github.com/edgexfoundry/edgex-go/internal/pkg/v2/application/delegate"
+	"github.com/edgexfoundry/edgex-go/internal/pkg/v2/ui/common/middleware/debugging"
+	"github.com/edgexfoundry/edgex-go/internal/pkg/v2/ui/http/api/common"
+	"github.com/edgexfoundry/edgex-go/internal/pkg/v2/ui/http/routing"
 	"github.com/edgexfoundry/edgex-go/internal/system/agent/clients"
 	"github.com/edgexfoundry/edgex-go/internal/system/agent/container"
 	"github.com/edgexfoundry/edgex-go/internal/system/agent/direct"
@@ -33,6 +37,7 @@ import (
 	"github.com/edgexfoundry/go-mod-bootstrap/di"
 
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/general"
+	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/types"
 
 	"github.com/gorilla/mux"
@@ -40,28 +45,33 @@ import (
 
 // Bootstrap contains references to dependencies required by the BootstrapHandler.
 type Bootstrap struct {
-	router *mux.Router
+	muxRouter            *mux.Router
+	inDebugMode          bool
+	inAcceptanceTestMode bool
 }
 
 // NewBootstrap is a factory method that returns an initialized Bootstrap receiver struct.
-func NewBootstrap(router *mux.Router) *Bootstrap {
+func NewBootstrap(muxRouter *mux.Router, inDebugMode, inAcceptanceTestMode bool) *Bootstrap {
 	return &Bootstrap{
-		router: router,
+		muxRouter:            muxRouter,
+		inDebugMode:          inDebugMode,
+		inAcceptanceTestMode: inAcceptanceTestMode,
 	}
 }
 
 // BootstrapHandler fulfills the BootstrapHandler contract.  It implements agent-specific initialization.
 func (b *Bootstrap) BootstrapHandler(_ context.Context, _ *sync.WaitGroup, _ startup.Timer, dic *di.Container) bool {
-	loadRestRoutes(b.router, dic)
-
+	lc := bootstrapContainer.LoggingClientFrom(dic.Get)
 	configuration := container.ConfigurationFrom(dic.Get)
+
+	loadV1Routes(b.muxRouter, dic)
+	b.loadV2Routes(dic, lc)
 
 	// validate metrics implementation
 	switch configuration.MetricsMechanism {
 	case direct.MetricsMechanism:
 	case executor.MetricsMechanism:
 	default:
-		lc := bootstrapContainer.LoggingClientFrom(dic.Get)
 		lc.Error("the requested metrics mechanism is not supported")
 		return false
 	}
@@ -126,4 +136,22 @@ func (b *Bootstrap) BootstrapHandler(_ context.Context, _ *sync.WaitGroup, _ sta
 	}
 
 	return true
+}
+
+// loadV2Routes creates a new command-query router and handles the related mux.Router initialization for API V2 routes.
+func (b *Bootstrap) loadV2Routes(dic *di.Container, lc logger.LoggingClient) {
+	handlers := []delegate.Handler{}
+	if b.inDebugMode {
+		handlers = append(handlers, debugging.New(lc).Handler)
+	}
+
+	routing.Initialize(
+		dic,
+		b.muxRouter,
+		handlers,
+		common.V2Routes(
+			b.inAcceptanceTestMode,
+			[]routing.Controller{},
+		),
+	)
 }

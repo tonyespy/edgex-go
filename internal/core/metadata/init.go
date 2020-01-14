@@ -22,6 +22,10 @@ import (
 	errorContainer "github.com/edgexfoundry/edgex-go/internal/pkg/container"
 	"github.com/edgexfoundry/edgex-go/internal/pkg/endpoint"
 	"github.com/edgexfoundry/edgex-go/internal/pkg/errorconcept"
+	"github.com/edgexfoundry/edgex-go/internal/pkg/v2/application/delegate"
+	"github.com/edgexfoundry/edgex-go/internal/pkg/v2/ui/common/middleware/debugging"
+	"github.com/edgexfoundry/edgex-go/internal/pkg/v2/ui/http/api/common"
+	"github.com/edgexfoundry/edgex-go/internal/pkg/v2/ui/http/routing"
 
 	bootstrapContainer "github.com/edgexfoundry/go-mod-bootstrap/bootstrap/container"
 	"github.com/edgexfoundry/go-mod-bootstrap/bootstrap/startup"
@@ -29,6 +33,7 @@ import (
 
 	"github.com/edgexfoundry/go-mod-core-contracts/clients"
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/coredata"
+	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/notifications"
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/types"
 
@@ -37,29 +42,33 @@ import (
 
 // Bootstrap contains references to dependencies required by the BootstrapHandler.
 type Bootstrap struct {
-	router *mux.Router
+	muxRouter            *mux.Router
+	inDebugMode          bool
+	inAcceptanceTestMode bool
 }
 
 // NewBootstrap is a factory method that returns an initialized Bootstrap receiver struct.
-func NewBootstrap(router *mux.Router) *Bootstrap {
+func NewBootstrap(muxRouter *mux.Router, inDebugMode, inAcceptanceTestMode bool) *Bootstrap {
 	return &Bootstrap{
-		router: router,
+		muxRouter:            muxRouter,
+		inDebugMode:          inDebugMode,
+		inAcceptanceTestMode: inAcceptanceTestMode,
 	}
 }
 
 // BootstrapHandler fulfills the BootstrapHandler contract and performs initialization needed by the metadata service.
 func (b *Bootstrap) BootstrapHandler(_ context.Context, _ *sync.WaitGroup, _ startup.Timer, dic *di.Container) bool {
-	loadRestRoutes(b.router, dic)
-
 	configuration := container.ConfigurationFrom(dic.Get)
-
-	// initialize clients required by service.
+	lc := bootstrapContainer.LoggingClientFrom(dic.Get)
 	registryClient := bootstrapContainer.RegistryFrom(dic.Get)
+
+	loadV1Routes(b.muxRouter, dic)
+	b.loadV2Routes(dic, lc)
 
 	// add dependencies to container
 	dic.Update(di.ServiceConstructorMap{
 		errorContainer.ErrorHandlerName: func(get di.Get) interface{} {
-			return errorconcept.NewErrorHandler(bootstrapContainer.LoggingClientFrom(get))
+			return errorconcept.NewErrorHandler(lc)
 		},
 		container.CoreDataValueDescriptorClientName: func(get di.Get) interface{} {
 			return coredata.NewValueDescriptorClient(
@@ -85,4 +94,22 @@ func (b *Bootstrap) BootstrapHandler(_ context.Context, _ *sync.WaitGroup, _ sta
 	})
 
 	return true
+}
+
+// loadV2Routes creates a new command-query router and handles the related mux.Router initialization for API V2 routes.
+func (b *Bootstrap) loadV2Routes(dic *di.Container, lc logger.LoggingClient) {
+	handlers := []delegate.Handler{}
+	if b.inDebugMode {
+		handlers = append(handlers, debugging.New(lc).Handler)
+	}
+
+	routing.Initialize(
+		dic,
+		b.muxRouter,
+		handlers,
+		common.V2Routes(
+			b.inAcceptanceTestMode,
+			[]routing.Controller{},
+		),
+	)
 }

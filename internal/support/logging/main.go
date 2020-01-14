@@ -36,14 +36,16 @@ import (
 func Main(ctx context.Context, cancel context.CancelFunc, router *mux.Router, readyStream chan<- bool) {
 	startupTimer := startup.NewStartUpTimer(internal.BootRetrySecondsDefault, internal.BootTimeoutSecondsDefault)
 
-	var useRegistry bool
+	var debugMode, useRegistry bool
 	var configDir, profileDir string
 
+	flag.BoolVar(&debugMode, "debug", false, "Turns on request/response debug logging.")
 	flag.BoolVar(&useRegistry, "registry", false, "Indicates the service should use Registry.")
 	flag.BoolVar(&useRegistry, "r", false, "Indicates the service should use Registry.")
 	flag.StringVar(&profileDir, "profile", "", "Specify a profile other than default.")
 	flag.StringVar(&profileDir, "p", "", "Specify a profile other than default.")
 	flag.StringVar(&configDir, "confdir", "", "Specify local configuration directory")
+
 	flag.Usage = usage.HelpCallback
 	flag.Parse()
 
@@ -54,7 +56,7 @@ func Main(ctx context.Context, cancel context.CancelFunc, router *mux.Router, re
 		},
 	})
 
-	httpServer := httpserver.NewBootstrap(router, true)
+	httpServer := httpserver.NewBootstrap(router, readyStream == nil)
 
 	bootstrap.Run(
 		ctx,
@@ -69,7 +71,12 @@ func Main(ctx context.Context, cancel context.CancelFunc, router *mux.Router, re
 		dic,
 		[]interfaces.BootstrapHandler{
 			secret.NewSecret().BootstrapHandler,
-			NewServiceInit(router, httpServer, clients.SupportLoggingServiceKey).BootstrapHandler,
+			NewBootstrap(
+				router,
+				httpServer,
+				clients.SupportLoggingServiceKey,
+				debugMode,
+				readyStream != nil).BootstrapHandler,
 			telemetry.BootstrapHandler,
 			httpServer.BootstrapHandler,
 			message.NewBootstrap(clients.SupportLoggingServiceKey, edgex.Version).BootstrapHandler,
