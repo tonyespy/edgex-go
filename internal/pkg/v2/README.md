@@ -33,7 +33,7 @@ To this end, the community decided that APIv2 persistence will be separate from 
 - ***DTO:*** data transfer object.  An object with no behavior used only for data transmission; e.g. the request and response objects that define the structure and content of the data required by and returned by a use-case.
 - ***Use-case Request:*** a request DTO instance that maps to a single invocation of a use-case.
 - ***Use-case Response:*** a response DTO instance returned from a single invocation of a use-case. 
-- ***Transport Request:***  a single HTTP request.  A single transport request can contain one or more use-case requests and an equivalent number of use-case responses.
+- ***Transport Request:***  in the current implementation, this is a single HTTP request.  A single transport request can contain one or more use-case requests and an equivalent number of use-case responses.
 - ***Use-case Endpoint:*** URL that accepts one or more use-case-specific requests and returns an equivalent number of use-case responses.  
 - ***Batch Endpoint:*** un-versioned URL (`/api/batch`) that accepts one or more use-case requests and returns an equivalent number of use-case responses. 
 
@@ -86,6 +86,7 @@ internal/pkg/v2/application			Application Layer
 internal/pkg/v2/domain				Domain Layer
 
 internal/pkg/v2/infrastructure		Infrastructure Layer
+	test								APIv2-related acceptance test support
 
 internal/pkg/v2/ui					User Interface Layer
 	common								Transport-independent implementation
@@ -164,7 +165,7 @@ Validation is an orthogonal concern and occurs outside of use-case implementatio
 
 Validators are applied to use-cases during wire-up.  Validators can be layered.
 
-Validation shares implementation with middleware; the underlying implementation to curry/wrap `application.Executable` behavior is common for both.
+Validation shares implementation with middleware; the underlying implementation to [curry](https://en.wikipedia.org/wiki/Currying) `application.Executable` behavior is common for both.
 
 
 
@@ -202,7 +203,7 @@ Middleware is optional and can be selectively enabled.  It can be added to all u
 
 Middleware is extensible and can be layered.  You can apply different middleware implementations to the same use-case; each middleware is implemented and executed in isolation from every other middleware.
 
-Middleware shares implementation with DTO validation; the underlying implementation to curry/wrap `application.Executable` behavior is common for both.
+Middleware shares implementation with DTO validation; the underlying implementation to [curry](https://en.wikipedia.org/wiki/Currying) `application.Executable` behavior is common for both.
 
 
 
@@ -242,7 +243,15 @@ Acceptance tests are written to ensure backward- and forward-compatibility acros
 
 As implemented, tests make heavy use of constants and contain no hardcoded JSON.
 
+#### New Required `REPO_ROOT` Environment Variable
 
+Since the new acceptance tests instantiate an instance of the service being tested inside the test runner context, the require access to the default configuration.toml files.  These service-specific files are defined in the various service-specific sub-directories under `/cmd`. Unfortunately, the way we execute `go test` in the builds means the directory containing the test becomes the working directory. 
+
+The newly added `REPO_ROOT` environment variable should have its value set to the absolute path of the root of the local copy of the edgex-go repository.  This provides a common point for the tests to specify the appropriate directory containing a service's configuration files thereby allowing the service to successfully bootstrap itself.
+
+This environment variable (and an appropriate value) will need to be added to any environment that executes `go test`.
+
+ 
 
 ### Forward Flexibility In Today's Design
 
@@ -256,13 +265,25 @@ The design supports a single executable capable of supporting endpoints from one
 
 #### RequestEnvelope's Strategy Property
 
-The RequestEnvelope includes a strategy property; currently defined are "sync", "async-push", and "asynch-poll".  The strategy property is intended to provide a transport-agnostic way of specifying the desired processing strategy to be applied to a use-case request.
+The RequestEnvelope includes a strategy property; currently defined are "sync", "async-push", and "asynch-poll".  The strategy property is intended to provide a transport-agnostic way (via an extensible [Strategy pattern](https://en.wikipedia.org/wiki/Strategy_pattern) implementation) of specifying the desired processing strategy to be applied to a use-case request.
 
 The "sync" option is implemented by default.  It processes the use-case request synchronously and returns a result only when processing has been completed.
 
 The "asynch-push" option provides for asynchronous processing of a use-case request.  The caller supplies an address as part of the request.  The request is accepted for processing and an intermediate result is immediately returned.  When request processing has asynchronously completed, the result will be pushed to the address provided.  This option has not been implemented and requires further definition and refinement.
 
 The "async-poll" option provides for asynchronous processing of a use-case request.  The request is accepted for processing and a unique token is immediately returned.  When request processing has asynchronously completed, the result will be stored for some finite timeframe.  The caller would provide the unique token to query for the result through a yet to be defined endpoint/process.  This option has not been implemented and requires further definition and refinement.
+
+#### Alternate Processing Strategies for Batch Requests
+
+It's currently possible (and in the batch endpoint's case it's required) to supply an array of use-case requests in a transport request.
+
+There's forward vision that would provide for wrapping an array of use-case requests in an new object that would include a strategy field for processing.  The strategy field would specify a specific processing strategy (via an extensible [Strategy pattern](https://en.wikipedia.org/wiki/Strategy_pattern) implementation).  
+
+This would allow for complex saga-like interaction (i.e. validate that the array contains all of the items necessary to do some complex behavior; process all of the objects of type A concurrently; wait for type A processing to complete; process type B, type C, and type D objects sequentially and in that order; return a result). 
+
+This would also allow for a strategy that provided for simple request-ignorant concurrent processing of all RequestEnvelope DTOs.
+
+Although this concept could be implemented generically for use-case endpoints, it's only currently envisioned for the batch endpoint (as the batch endpoint provides the entire APIv2 urcontract expected to be implemented by other transport implementations).
 
 
 
