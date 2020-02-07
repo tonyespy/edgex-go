@@ -24,7 +24,7 @@ import (
 )
 
 // V2Routes provides a single cross-service implementation of common V2 API route definitions.
-func V2Routes(inAcceptanceTestMode bool, controllers []routing.Controller) []routing.Controller {
+func V2Routes(inV2AcceptanceTestMode bool, controllers []routing.Controller) []routing.Controller {
 	commonRoutes := []routing.Controller{
 		batch.New(),
 		metrics.New(),
@@ -32,7 +32,7 @@ func V2Routes(inAcceptanceTestMode bool, controllers []routing.Controller) []rou
 		version.New(),
 	}
 
-	if inAcceptanceTestMode {
+	if inV2AcceptanceTestMode {
 		commonRoutes = append(
 			commonRoutes,
 			[]routing.Controller{

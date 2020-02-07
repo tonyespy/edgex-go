@@ -45,11 +45,11 @@ type server interface {
 
 // Bootstrap contains references to dependencies required by the BootstrapHandler.
 type Bootstrap struct {
-	muxRouter            *mux.Router
-	server               server
-	serviceKey           string
-	inDebugMode          bool
-	inAcceptanceTestMode bool
+	muxRouter              *mux.Router
+	server                 server
+	serviceKey             string
+	inDebugMode            bool
+	inV2AcceptanceTestMode bool
 }
 
 // NewBootstrap is a factory method that returns an initialized Bootstrap receiver struct.
@@ -58,14 +58,14 @@ func NewBootstrap(
 	server server,
 	serviceKey string,
 	inDebugMode bool,
-	inAcceptanceTestMode bool) *Bootstrap {
+	inV2AcceptanceTestMode bool) *Bootstrap {
 
 	return &Bootstrap{
-		muxRouter:            router,
-		server:               server,
-		serviceKey:           serviceKey,
-		inDebugMode:          inDebugMode,
-		inAcceptanceTestMode: inAcceptanceTestMode,
+		muxRouter:              router,
+		server:                 server,
+		serviceKey:             serviceKey,
+		inDebugMode:            inDebugMode,
+		inV2AcceptanceTestMode: inV2AcceptanceTestMode,
 	}
 }
 
@@ -74,7 +74,7 @@ func (b *Bootstrap) getPersistence(
 	credentials *bootstrapConfig.Credentials,
 	configuration *config.ConfigurationStruct) (interfaces.Persistence, error) {
 
-	if b.inAcceptanceTestMode {
+	if b.inV2AcceptanceTestMode {
 		return file.NewLogger(configuration.Logging.File), nil
 	}
 
@@ -98,7 +98,9 @@ func (b *Bootstrap) BootstrapHandler(
 	lc := logging.FactoryToStdout(b.serviceKey)
 	configuration := container.ConfigurationFrom(dic.Get)
 
-	loadV1Routes(b.muxRouter, dic)
+	if !b.inV2AcceptanceTestMode {
+		loadV1Routes(b.muxRouter, dic)
+	}
 	b.loadV2Routes(dic, lc)
 
 	// get database credentials.
@@ -171,7 +173,7 @@ func (b *Bootstrap) loadV2Routes(dic *di.Container, lc logger.LoggingClient) {
 		b.muxRouter,
 		handlers,
 		common.V2Routes(
-			b.inAcceptanceTestMode,
+			b.inV2AcceptanceTestMode,
 			[]routing.Controller{},
 		),
 	)

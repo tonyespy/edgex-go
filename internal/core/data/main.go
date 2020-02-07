@@ -77,7 +77,7 @@ func Main(ctx context.Context, cancel context.CancelFunc, router *mux.Router, re
 		dic,
 		[]interfaces.BootstrapHandler{
 			secret.NewSecret().BootstrapHandler,
-			database.NewDatabaseForCoreData(httpServer, configuration).BootstrapHandler,
+			database.NewDatabaseForCoreData(httpServer, configuration, readyStream != nil).BootstrapHandler,
 			NewBootstrap(router, debugMode, readyStream != nil).BootstrapHandler,
 			telemetry.BootstrapHandler,
 			httpServer.BootstrapHandler,

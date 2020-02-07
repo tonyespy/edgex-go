@@ -45,17 +45,17 @@ import (
 
 // Bootstrap contains references to dependencies required by the BootstrapHandler.
 type Bootstrap struct {
-	muxRouter            *mux.Router
-	inDebugMode          bool
-	inAcceptanceTestMode bool
+	muxRouter              *mux.Router
+	inDebugMode            bool
+	inV2AcceptanceTestMode bool
 }
 
 // NewBootstrap is a factory method that returns an initialized Bootstrap receiver struct.
-func NewBootstrap(muxRouter *mux.Router, inDebugMode, inAcceptanceTestMode bool) *Bootstrap {
+func NewBootstrap(muxRouter *mux.Router, inDebugMode, inV2AcceptanceTestMode bool) *Bootstrap {
 	return &Bootstrap{
-		muxRouter:            muxRouter,
-		inDebugMode:          inDebugMode,
-		inAcceptanceTestMode: inAcceptanceTestMode,
+		muxRouter:              muxRouter,
+		inDebugMode:            inDebugMode,
+		inV2AcceptanceTestMode: inV2AcceptanceTestMode,
 	}
 }
 
@@ -64,7 +64,9 @@ func (b *Bootstrap) BootstrapHandler(_ context.Context, _ *sync.WaitGroup, _ sta
 	lc := bootstrapContainer.LoggingClientFrom(dic.Get)
 	configuration := container.ConfigurationFrom(dic.Get)
 
-	loadV1Routes(b.muxRouter, dic)
+	if !b.inV2AcceptanceTestMode {
+		loadV1Routes(b.muxRouter, dic)
+	}
 	b.loadV2Routes(dic, lc)
 
 	// validate metrics implementation
@@ -150,7 +152,7 @@ func (b *Bootstrap) loadV2Routes(dic *di.Container, lc logger.LoggingClient) {
 		b.muxRouter,
 		handlers,
 		common.V2Routes(
-			b.inAcceptanceTestMode,
+			b.inV2AcceptanceTestMode,
 			[]routing.Controller{},
 		),
 	)
