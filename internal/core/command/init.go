@@ -1,6 +1,7 @@
 /*******************************************************************************
  * Copyright 2017 Dell Inc.
  * Copyright (c) 2019 Intel Corporation
+ * Copyright (c) 2020 Canonical
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -17,12 +18,16 @@ package command
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"sync"
+	"time"
 
 	"github.com/edgexfoundry/edgex-go/internal/core/command/container"
 	errorContainer "github.com/edgexfoundry/edgex-go/internal/pkg/container"
 	"github.com/edgexfoundry/edgex-go/internal/pkg/endpoint"
 	"github.com/edgexfoundry/edgex-go/internal/pkg/errorconcept"
+	"github.com/edgexfoundry/edgex-go/internal/pkg/v2/application"
 	"github.com/edgexfoundry/edgex-go/internal/pkg/v2/application/delegate"
 	"github.com/edgexfoundry/edgex-go/internal/pkg/v2/ui/common/middleware/debugging"
 	"github.com/edgexfoundry/edgex-go/internal/pkg/v2/ui/http/api/common"
@@ -88,6 +93,50 @@ func (b *Bootstrap) BootstrapHandler(_ context.Context, _ *sync.WaitGroup, _ sta
 	return true
 }
 
+// middleware contains references to dependencies required by the debugging middleware implementation.
+type middleware struct {}
+
+// New is a factory function that returns a new middleware receiver.
+func NewMW() *middleware {
+	return &middleware{}
+}
+
+// marshal converts interface{}-typed content into a string.
+func (m *middleware) marshal(content interface{}) string {
+	s, err := json.Marshal(content)
+	if err != nil {
+		s = []byte("(unable to marshal)")
+	}
+	return string(s)
+}
+
+// Handler implements the middleware.Handler contract; it just prints each request & response to stdout
+func (m *middleware) Handler(
+	request interface{},
+	behavior *application.Behavior,
+	execute application.Executable) (response interface{}, status application.Status) {
+
+	start := time.Now()
+	fmt.Printf("***START: %v\n", start)
+	response, status = execute(request)
+	elapsed := time.Now().Sub(start) / time.Millisecond
+
+	// override response...
+	response = "Handler-generated fake response"
+
+	fmt.Printf("***ELAPSED: %dms, version: %s, kind: %s, action: %s, request: %s, response: %s\n",
+			elapsed,
+			behavior.Version,
+			behavior.Kind,
+			behavior.Action,
+			m.marshal(request),
+			response,
+//			m.marshal(response),
+		)
+
+	return
+}
+
 // loadV2Routes creates a new command-query router and handles the related mux.Router initialization for API V2 routes.
 func (b *Bootstrap) loadV2Routes(dic *di.Container, lc logger.LoggingClient) {
 	handlers := []delegate.Handler{}
@@ -95,13 +144,20 @@ func (b *Bootstrap) loadV2Routes(dic *di.Container, lc logger.LoggingClient) {
 		handlers = append(handlers, debugging.New(lc).Handler)
 	}
 
+	handlers = append(handlers, NewMW().Handler)
+
+	extraRoutes := []routing.Controller{
+		NewAWE(),
+	}
+
+
 	routing.Initialize(
 		dic,
 		b.muxRouter,
 		handlers,
 		common.V2Routes(
 			b.inV2AcceptanceTestMode,
-			[]routing.Controller{},
+			extraRoutes,
 		),
 	)
 }
