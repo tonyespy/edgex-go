@@ -154,36 +154,6 @@ gosu snap_daemon "$SNAP/usr/lib/postgresql/10/bin/initdb" -D "$SNAP_DATA/postgre
 mkdir -p "$SNAP_COMMON/sockets"
 chown -R snap_daemon:snap_daemon "$SNAP_COMMON/sockets" 
 
-# start postgres up and wait a bit for it so we can create the database and user
-# for kong
-snapctl start "$SNAP_NAME.postgres"
-
-# add a kong user and database in postgres - note we have to run these through
-# the perl5lib-launch scripts to setup env vars properly and we need to loop
-# trying to do this because we have to wait for postgres to start up
-iter_num=0
-MAX_POSTGRES_INIT_ITERATIONS=10
-until gosu snap_daemon "$SNAP/bin/perl5lib-launch.sh" "$SNAP/usr/bin/createuser" kong; do
-    sleep 1
-    iter_num=$(( iter_num + 1 ))
-    if [ $iter_num -gt $MAX_POSTGRES_INIT_ITERATIONS ]; then
-        echo "failed to create kong user in postgres after $iter_num iterations"
-        exit 1
-    fi
-done
-iter_num=0
-until gosu snap_daemon "$SNAP/bin/perl5lib-launch.sh" "$SNAP/usr/bin/createdb" kong; do
-    sleep 1
-    iter_num=$(( iter_num + 1 ))
-    if [ $iter_num -gt $MAX_POSTGRES_INIT_ITERATIONS ]; then
-        echo "failed to create kong db in postgres after $iter_num iterations"
-        exit 1
-    fi
-done
-
-# stop postgres again in case the security services should be turned off
-snapctl stop "$SNAP_NAME.postgres"
-
 # finally, disable and turn off non-default services
 # by default, we want the support-*, device-*, and redis services
 # off.
@@ -206,13 +176,8 @@ for svc in support-notifications support-scheduler support-logging app-service-c
     snapctl stop --disable "$SNAP_NAME.$svc"
 done
 
-# if we are on arm64, disable the security-proxy because kong isn't 
-# properly supported on arm64 due to incorrect memory pointers used by lua and
-# openresty
-# see https://github.com/edgexfoundry/blackbox-testing/issues/185 for more 
-# details
-if [ "$SNAP_ARCH" == "arm64" ]; then
-    snapctl set security-proxy=off
-    snapctl stop --disable "$SNAP_NAME.kong-daemon"
-    snapctl stop --disable "$SNAP_NAME.security-proxy-setup"
-fi
+# Since master token-provider is broken in the snap, disable all security...
+snapctl set security-proxy=off
+snapctl set security-secret-store=off
+snapctl stop --disable "$SNAP_NAME.kong-daemon"
+snapctl stop --disable "$SNAP_NAME.security-proxy-setup"
