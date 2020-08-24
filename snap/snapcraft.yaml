@@ -548,7 +548,7 @@ parts:
     after: [go113]
     plugin: make
     source: https://github.com/hashicorp/consul.git
-    source-tag: v1.7.3
+    source-tag: v1.7.7
     source-depth: 1
     stage:
       # duplicated file with the deps of vault, so just drop this one and use
@@ -601,7 +601,7 @@ parts:
 
   redis:
     source: https://github.com/antirez/redis.git
-    source-tag: "5.0.8"
+    source-tag: "5.0.9"
     source-depth: 1
     plugin: make
     make-install-var: PREFIX
@@ -810,7 +810,7 @@ parts:
     after: [snapcraft-preload, luarocks]
     source: https://github.com/kong/kong.git
     plugin: nil
-    source-tag: 2.0.4
+    source-tag: 2.0.5
     source-depth: 1
     build-packages:
       - unzip
@@ -881,7 +881,7 @@ parts:
     after: [go112]
     plugin: make
     source: https://github.com/hashicorp/vault.git
-    source-tag: v1.3.6
+    source-tag: v1.3.7
     source-depth: 1
     override-build: |
       # see https://github.com/hashicorp/vault/issues/8927
