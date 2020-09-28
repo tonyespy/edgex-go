@@ -8,7 +8,7 @@
 #
 REDIS5_PASSWORD=`cat "$SNAP_DATA/secrets/edgex-redis/redis5-password"`
 
-exec "$SNAP/bin/redis-server" \
+exec "$SNAP/usr/bin/redis-server" \
      --requirepass "$REDIS5_PASSWORD" \
      --dir "$SNAP_DATA/redis" \
      --save 900 1 \

@@ -306,7 +306,7 @@ apps:
     plugs: [home, removable-media, network]
   redis-cli:
     adapter: full
-    command: bin/redis-cli
+    command: usr/bin/redis-cli
     plugs: [home, removable-media, network]
   consul-cli:
     adapter: none
@@ -599,13 +599,6 @@ parts:
       - make
       - zip
 
-  redis:
-    source: https://github.com/antirez/redis.git
-    source-tag: "5.0.8"
-    source-depth: 1
-    plugin: make
-    make-install-var: PREFIX
-
   edgex-go:
     source: .
     plugin: make
@@ -667,6 +660,8 @@ parts:
       - pkg-config
     stage-packages:
       - libzmq5
+    stage-snaps:
+      - redis
 
   # KONG + OPENRESTY PARTS
   openresty-kong-patches:
