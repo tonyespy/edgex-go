@@ -788,11 +788,14 @@ parts:
       export PATH="$SNAPCRAFT_STAGE/go1.15/bin:$GOPATH/bin:$PATH"
 
       cd $SNAPCRAFT_PART_SRC
+      patch -p1 < "$SNAPCRAFT_PROJECT_DIR/snap/local/patches/0001-remove-http.Server.Addr-host-0.0.0.0.patch"
+
       export BUILD_PATH=$SNAPCRAFT_PART_BUILD
       export PACKAGES_PATH=$SNAPCRAFT_PART_INSTALL
       make build_with_edgex
       make real_pkg
       cd $SNAPCRAFT_PART_INSTALL
+
       # TODO: SIMPLIFY THIS!!!
       tar -xvf kuiper*.tar.gz --strip-components=1
       rm *.zip *.gz

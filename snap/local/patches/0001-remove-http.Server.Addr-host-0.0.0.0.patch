@@ -1,0 +1,63 @@
+From afc8cf279a69f294295737e93085fe56c9f74009 Mon Sep 17 00:00:00 2001
+From: Tony Espy <espy@canonical.com>
+Date: Fri, 20 Nov 2020 15:30:05 -0500
+Subject: [PATCH] remove http.Server.Addr host "0.0.0.0"
+
+This change removes the hardcoded "0.0.0.0" host
+used for all of the http.Server instances started
+by Kuiper. Ideally Kuiper adds support to configure
+these host strings, but for not remove "0.0.0.0" (
+which means listen on all network interfaces), so
+that Kuiper only listens on localhost.
+---
+ xstream/server/server/rest.go   | 2 +-
+ xstream/server/server/server.go | 6 +++---
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/xstream/server/server/rest.go b/xstream/server/server/rest.go
+index beb106e..ba67765 100644
+--- a/xstream/server/server/rest.go
++++ b/xstream/server/server/rest.go
+@@ -110,7 +110,7 @@ func createRestServer(port int) *http.Server {
+ 	r.HandleFunc("/metadata/sources/{name}/confKeys/{confKey}/field", sourceConfKeyFieldsHandler).Methods(http.MethodDelete, http.MethodPost)
+ 
+ 	server := &http.Server{
+-		Addr: fmt.Sprintf("0.0.0.0:%d", port),
++		Addr: fmt.Sprintf("localhost:%d", port),
+ 		// Good practice to set timeouts to avoid Slowloris attacks.
+ 		WriteTimeout: time.Second * 60 * 5,
+ 		ReadTimeout:  time.Second * 60 * 5,
+diff --git a/xstream/server/server/server.go b/xstream/server/server/server.go
+index 7ae0d46..8f76565 100644
+--- a/xstream/server/server/server.go
++++ b/xstream/server/server/server.go
+@@ -76,7 +76,7 @@ func StartUp(Version, LoadFileType string) {
+ 		mux := http.NewServeMux()
+ 		mux.Handle("/metrics", promhttp.Handler())
+ 		srvPrometheus = &http.Server{
+-			Addr:         fmt.Sprintf("0.0.0.0:%d", portPrometheus),
++			Addr:         fmt.Sprintf("localhost:%d", portPrometheus),
+ 			WriteTimeout: time.Second * 15,
+ 			ReadTimeout:  time.Second * 15,
+ 			IdleTimeout:  time.Second * 60,
+@@ -114,7 +114,7 @@ func StartUp(Version, LoadFileType string) {
+ 		logger.Fatal("Format of service Server isn'restHttpType correct. ", err)
+ 	}
+ 	srvRpc := &http.Server{
+-		Addr:         fmt.Sprintf("0.0.0.0:%d", portRpc),
++		Addr:         fmt.Sprintf("localhost:%d", portRpc),
+ 		WriteTimeout: time.Second * 15,
+ 		ReadTimeout:  time.Second * 15,
+ 		IdleTimeout:  time.Second * 60,
+@@ -131,7 +131,7 @@ func StartUp(Version, LoadFileType string) {
+ 	if common.Config.Basic.RestTls != nil {
+ 		restHttpType = "https"
+ 	}
+-	msg := fmt.Sprintf("Serving kuiper (version - %s) on port %d, and restful api on %s://0.0.0.0:%d. \n", Version, common.Config.Basic.Port, restHttpType, common.Config.Basic.RestPort)
++	msg := fmt.Sprintf("Serving kuiper (version - %s) on port %d, and restful api on %s://localhost:%d. \n", Version, common.Config.Basic.Port, restHttpType, common.Config.Basic.RestPort)
+ 	logger.Info(msg)
+ 	fmt.Printf(msg)
+ 
+-- 
+2.17.1
+
