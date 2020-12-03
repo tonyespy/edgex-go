@@ -3,6 +3,23 @@ From: Tony Espy <espy@canonical.com>
 Date: Wed, 27 Jan 2021 12:55:10 -0500
 Subject: [PATCH] [PATCH] optimize snap build for pipeline CI check
 
+This patch is used by the EdgeX CI pipeline builds to
+optimize the snap CI check run for pull requests. When
+applied, it essentially strips out everything (apps and
+parts) from the snapcraft.yaml file except those required
+to build edgex-go, as the whole idea of the CI check is to
+catch changes to edgex-go that break the snap build.
+
+In general, anyone updating snapcraft.yaml will also need
+to update this patch file, otherwise it may fail to apply,
+resulting in a failed snap build CI check in the associated
+pull request.
+
+Note - in addition to applying this patch, the pipeline also
+only primes the snap (e.g. `snapcraft prime`), as there's no
+need to build the finally binary .snap file (and it won't
+work with the patch applied). This further reduces the build
+time.
 ---
  snap/snapcraft.yaml | 474 +-------------------------------------------
  1 file changed, 2 insertions(+), 472 deletions(-)
@@ -131,14 +148,13 @@ index 4f322fc4..a1dfb449 100644
 -      Binding_PublishTopic: events
 -      EDGEX_SECURITY_SECRET_STORE: "false"
 -    plugs: [network, network-bind]
--  # helper commands the snap exposes
--  security-proxy-setup-cmd:
--    adapter: none
--    command: bin/security-proxy-setup
--    environment:
--      SecretService_TokenPath: $SNAP_DATA/secrets/edgex-security-proxy-setup/secrets-token.json
--      SecretService_CACertPath: $SNAP_DATA/secrets/ca/ca.pem
--    plugs: [home, removable-media, network]
+   # helper commands the snap exposes
+   security-proxy-setup-cmd:
+     adapter: none
+@@ -333,14 +233,6 @@ apps:
+     environment:
+       SecretService_CACertPath: $SNAP_DATA/secrets/ca/ca.pem
+     plugs: [home, removable-media, network]
 -  redis-cli:
 -    adapter: full
 -    command: bin/redis-cli
@@ -542,4 +558,3 @@ index 4f322fc4..a1dfb449 100644
 -      - libzmq5
 -- 
 2.17.1
-
