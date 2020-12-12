@@ -44,6 +44,7 @@ WhiteList = "admin"
 
 [SecretService]
 Server = "localhost"
+Scheme = "https"
 Port = 8200
 HealthCheckPath = "v1/sys/health"
 CertPath = "/v1/secret/edgex/edgex-security-proxy-setup/"
