@@ -72,6 +72,10 @@ grade: stable
 confinement: strict
 
 # This applies to all apps
+# Even though Vault TLS is now disabled, this is still needed,
+# otherwise the secret-client will fail trying to read the
+# default CA defined in the various service configuration.toml
+# files. This should be possible to remove for Ireland.
 environment:
   SecretStore_RootCaCertPath: $SNAP_DATA/secrets/ca/ca.pem
 apps:
