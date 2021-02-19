@@ -765,27 +765,25 @@ parts:
          "$SNAPCRAFT_PART_INSTALL/usr/share/doc/device-virtual/LICENSE"
 
   app-service-config:
-    source: https://github.com/edgexfoundry/app-service-configurable.git
-    # TODO(Hanoi): update to source-tag for release
-    source-branch: master
-    plugin: make
-    build-packages: [gcc, git, libzmq3-dev, pkg-config]
-    stage-packages: [libzmq5]
-    after: [go115]
-    override-build: |
-      export PATH="$SNAPCRAFT_STAGE/go1.15/bin:$GOPATH/bin:$PATH"
-      cd $SNAPCRAFT_PART_SRC
-      make build
+    plugin: nil
+    source: snap/local/build-helpers
+    stage-snaps:
+      - edgex-app-service-configurable
 
-      # install the service binary, configuration, and license files
-      install -DT "./app-service-configurable" \
-         "$SNAPCRAFT_PART_INSTALL/bin/app-service-configurable"
-      install -DT "./res/rules-engine/configuration.toml" \
-         "$SNAPCRAFT_PART_INSTALL/config/app-service-configurable/res/rules-engine/configuration.toml"
-      install -DT "./Attribution.txt" \
-         "$SNAPCRAFT_PART_INSTALL/usr/share/doc/app-service-configurable/Attribution.txt"
-      install -DT "./LICENSE" \
-         "$SNAPCRAFT_PART_INSTALL/usr/share/doc/app-service-configurable/LICENSE"
+# NOTe - stage-snaps apparently doesn't offer --revision as an option, so there's no way
+# to pin to a specific revision for reproducible builds.
+#
+# TODO: cleanup
+#
+# install the service binary, configuration, and license files
+# install -DT "./app-service-configurable" \
+#  "$SNAPCRAFT_PART_INSTALL/bin/app-service-configurable"
+# install -DT "./res/rules-engine/configuration.toml" \
+#         "$SNAPCRAFT_PART_INSTALL/config/app-service-configurable/res/rules-engine/configuration.toml"
+#      install -DT "./Attribution.txt" \
+#         "$SNAPCRAFT_PART_INSTALL/usr/share/doc/app-service-configurable/Attribution.txt"
+#      install -DT "./LICENSE" \
+#      "$SNAPCRAFT_PART_INSTALL/usr/share/doc/app-service-configurable/LICENSE"
 
   kuiper:
     source: https://github.com/emqx/kuiper.git
