@@ -532,7 +532,7 @@ parts:
     after: [go115]
     plugin: make
     source: https://github.com/hashicorp/consul.git
-    source-tag: v1.8.4
+    source-tag: v1.8.8
     source-depth: 1
     stage:
       # duplicated file with the deps of vault, so just drop this one and use
