@@ -102,6 +102,9 @@ cp "$SNAP/config/security-file-token-provider/res/token-config.json" "$SNAP_DATA
 mkdir -p "$SNAP_DATA/consul/data"
 mkdir -p "$SNAP_DATA/consul/config"
 
+# copy consul config file - used to disable DNS
+cp "$SNAP/config/consul/basic_config.json" "$SNAP_DATA/consul/config/basic_config.json"
+
 # ensure secrets dir exists
 mkdir -p "$SNAP_DATA/secrets"
 
