@@ -732,7 +732,7 @@ parts:
   device-virtual-go:
     source: https://github.com/edgexfoundry/device-virtual-go.git
     source-depth: 1
-    source-tag: v1.3.0
+    source-tag: v1.3.1
     plugin: make
     after: [go115]
     override-build: |
