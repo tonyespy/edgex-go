@@ -687,7 +687,7 @@ parts:
     after: [go115]
     plugin: make
     source: https://github.com/hashicorp/vault.git
-    source-tag: v1.5.4
+    source-tag: v1.5.7
     source-depth: 1
     override-build: |
       . $SNAPCRAFT_STAGE/bin/go-build-helper.sh
