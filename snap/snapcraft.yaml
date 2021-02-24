@@ -759,7 +759,7 @@ parts:
   app-service-config:
     source: https://github.com/edgexfoundry/app-service-configurable.git
     source-depth: 1
-    source-tag: v1.3.0
+    source-tag: v1.3.1
     plugin: make
     build-packages: [gcc, git, libzmq3-dev, pkg-config]
     stage-packages: [libzmq5]
