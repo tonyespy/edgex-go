@@ -532,7 +532,7 @@ parts:
     after: [go115]
     plugin: make
     source: https://github.com/hashicorp/consul.git
-    source-tag: v1.8.4
+    source-tag: v1.8.8
     source-depth: 1
     stage:
       # duplicated file with the deps of vault, so just drop this one and use
@@ -586,7 +586,7 @@ parts:
 
   redis:
     source: https://github.com/redis/redis.git
-    source-tag: "6.0.9"
+    source-tag: "6.0.11"
     source-depth: 1
     plugin: make
     make-install-var: PREFIX
@@ -687,7 +687,7 @@ parts:
     after: [go115]
     plugin: make
     source: https://github.com/hashicorp/vault.git
-    source-tag: v1.5.4
+    source-tag: v1.5.7
     source-depth: 1
     override-build: |
       . $SNAPCRAFT_STAGE/bin/go-build-helper.sh
