@@ -783,7 +783,7 @@ parts:
 
   kuiper:
     source: https://github.com/emqx/kuiper.git
-    source-tag: 1.0.1
+    source-tag: 1.1.1
     plugin: make
     after: [go115]
     override-build: |
@@ -799,9 +799,11 @@ parts:
       tar -xvf kuiper*.tar.gz --strip-components=1
       rm *.zip *.gz
 
-      # configure logging
+      # configure logging & restrict to localhost
       sed -i -e 's@consoleLog\: false@consoleLog\: true@' \
         -e 's@fileLog\: true@fileLog\: false@' \
+        -e 's@ip\: 0.0.0.0@ip\: localhost@' \
+        -e 's@restIp\: 0.0.0.0@restIp\: localhost@' \
         $SNAPCRAFT_PART_INSTALL/etc/kuiper.yaml
 
       # update the edgex source's port to 5566 to match
