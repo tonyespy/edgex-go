@@ -191,6 +191,8 @@ apps:
       - security-secretstore-setup
       - kong-daemon
     command: bin/security-proxy-setup -confdir $SNAP_DATA/config/security-proxy-setup/res $INIT_ARG
+    command-chain:
+      - bin/service-config-overrides.sh
     environment:
       INIT_ARG: "--init=true"
       SecretService_TokenPath: $SNAP_DATA/secrets/edgex-security-proxy-setup/secrets-token.json

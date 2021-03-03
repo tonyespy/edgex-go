@@ -131,6 +131,20 @@ if [ ! -f "$SNAP_DATA/config/security-secret-store/vault-config.hcl" ]; then
     chmod 644 "$SNAP_DATA/config/security-secret-store/vault-config.hcl"
 fi
 
+# If env.security-proxy.add-proxy-route is not explicitly set, initialize it
+# by adding consul
+add_proxy_route=$(snapctl get env.security-proxy.add-proxy-route)
+if [ -z "$add_proxy_route" ]; then
+    add_proxy_route="consul.http://localhost:8500"
+    snapctl set env.security-proxy.add-proxy-route="$add_proxy_route"
+fi
+
+# TODO: add validation of add_proxy_route
+
+env_file="$SNAP_DATA/config/security-proxy-setup/res/security-proxy-setup.env"
+logger "edgex:install: writing ADD_PROXY_ROUTE=$add_proxy_routes to $envfile"
+echo "export ADD_PROXY_ROUTE=$add_proxy_route" > "$env_file"
+
 # the kong config file needs to be generated with 3 changes from the default one included in the snap
 # - we set the prefix to be $SNAP_DATA/kong as an absolute path (note that this has to be done here in the install hook)
 # - we set the nginx user to be root

@@ -125,7 +125,7 @@ Currently, the security services are enabled by default. The security services c
  * security-secretstore-setup
  * security-proxy-setup
 
-Vault is used for secret management, and Kong is used as an HTTPS proxy for all the services.
+Vault is used for secret management, and Kong is used as an HTTPS proxy for all the services (including Consul).
 
 Kong can be disabled by using the following command:
 
