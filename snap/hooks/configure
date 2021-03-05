@@ -112,6 +112,16 @@ for key in $ALL_SERVICES; do
             # just ignore this request
             ;;
         security-proxy)
+            # TODO: this code will need to be re-factored when rich configure
+            # support is released for the edgexfoundry snap.
+            #
+            # NOTE - this logic always overrwrites the existing value. This
+            # should be fixed when rich config hook is implemented.
+            add_proxy_route=$(snapctl get env.security-proxy.add-proxy-route)
+            env_file="$SNAP_DATA/config/security-proxy-setup/res/security-proxy-setup.env"
+            logger "edgex:configure: writing ADD_PROXY_ROUTE=$add_proxy_routes to $envfile"
+            echo "export ADD_PROXY_ROUTE=$add_proxy_route" > "$env_file"
+
             # the security-proxy consists of the following base services
             # - kong
             # - postgres (because kong requires it)
