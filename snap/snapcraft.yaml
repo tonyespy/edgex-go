@@ -353,6 +353,7 @@ apps:
       KongAuth_OutputPath: $SNAP_DATA/access_token.json
       SecretService_TokenPath: $SNAP_DATA/secrets/edgex-security-proxy-setup/secrets-token.json
       SecretService_CACertPath: $SNAP_DATA/secrets/ca/ca.pem
+      SecretService_Scheme: http
     plugs: [home, removable-media, network]
   redis-cli:
     adapter: full
