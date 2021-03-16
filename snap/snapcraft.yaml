@@ -59,6 +59,17 @@ passthrough:
         - snap/command-chain/snapcraft-runner
         - bin/snapcraft-preload
 
+plugs:
+  # This content interface provides a mechanism for the edgexfoundry
+  # snap to shared vault secret tokens in order for services in external
+  # edgex snap to access the secret-store. Note, in this case this snap
+  # defines a plug instead of slot to allow the consuming snap to create
+  # the service-specific directory under $SNAP_DATA/secrets.
+  edgex-secretstore-token:
+    interface: content
+    content: edgex-secretstore-token
+    target: $SNAP_DATA/secrets
+
 # kong runs things through luarocks and luarocks expects it's configuration to
 # be located here and we can't override this at runtime, so map what's in
 # $SNAP to the expected location
@@ -72,6 +83,10 @@ grade: stable
 confinement: strict
 
 # This applies to all apps
+# Even though Vault TLS is now disabled, this is still needed,
+# otherwise the secret-client will fail trying to read the
+# default CA defined in the various service configuration.toml
+# files. This should be possible to remove for Ireland.
 environment:
   SecretStore_RootCaCertPath: $SNAP_DATA/secrets/ca/ca.pem
 apps:
@@ -147,7 +162,7 @@ apps:
     daemon: simple
     environment:
       VAULT_CONFIG: "$SNAP_DATA/config/security-secret-store/vault-config.hcl"
-      VAULT_ADDR: "https://localhost:8200"
+      VAULT_ADDR: "http://localhost:8200"
     plugs:
       - network
       - network-bind
@@ -156,7 +171,7 @@ apps:
     command: bin/vault
     environment:
       VAULT_CONFIG: "$SNAP_DATA/config/security-secret-store/vault-config.hcl"
-      VAULT_ADDR: "https://localhost:8200"
+      VAULT_ADDR: "http://localhost:8200"
     plugs:
       - network
       - network-bind
@@ -177,6 +192,7 @@ apps:
       SecretService_TokenProvider: $SNAP/bin/security-file-token-provider
       SecretService_TokenProviderArgs: "-confdir, $SNAP_DATA/config/security-file-token-provider/res"
       SecretService_TokenProviderAdminTokenPath: $SNAP_DATA/secrets/tokenprovider/secrets-token.json
+      SecretService_Scheme: http
 
       # environment for security-file-token-provider, exec'd by secretstore-setup
       TokenFileProvider_PrivilegedTokenPath: $SNAP_DATA/secrets/tokenprovider/secrets-token.json
@@ -197,6 +213,7 @@ apps:
       INIT_ARG: "--init=true"
       SecretService_TokenPath: $SNAP_DATA/secrets/edgex-security-proxy-setup/secrets-token.json
       SecretService_CACertPath: $SNAP_DATA/secrets/ca/ca.pem
+      SecretService_Scheme: http
     daemon: oneshot
     start-timeout: 15m
     plugs: [network]
@@ -214,6 +231,7 @@ apps:
       SecretStore_ServerName: localhost
       SecretStore_TokenFile: $SNAP_DATA/secrets/edgex-security-bootstrap-redis/secrets-token.json
       SecretStore_RooCaCertPath: $SNAP_DATA/secrets/ca/ca.pem
+      SecretStore_Protocol: http
     daemon: oneshot
     plugs: [network]
   core-data:
@@ -225,6 +243,7 @@ apps:
     command-chain:
       - bin/security-secret-store-env-var.sh
     environment:
+      SecretStore_Protocol: http
       SecretStore_TokenFile: $SNAP_DATA/secrets/edgex-core-data/secrets-token.json
     daemon: simple
     plugs: [network, network-bind]
@@ -241,6 +260,7 @@ apps:
     command-chain:
       - bin/security-secret-store-env-var.sh
     environment:
+      SecretStore_Protocol: http
       SecretStore_TokenFile: $SNAP_DATA/secrets/edgex-core-metadata/secrets-token.json
     daemon: simple
     plugs: [network, network-bind]
@@ -254,6 +274,7 @@ apps:
     command-chain:
       - bin/security-secret-store-env-var.sh
     environment:
+      SecretStore_Protocol: http
       SecretStore_TokenFile: $SNAP_DATA/secrets/edgex-core-command/secrets-token.json
     daemon: simple
     plugs: [network, network-bind]
@@ -267,6 +288,7 @@ apps:
     command-chain:
       - bin/security-secret-store-env-var.sh
     environment:
+      SecretStore_Protocol: http
       SecretStore_TokenFile: $SNAP_DATA/secrets/edgex-support-notifications/secrets-token.json
     daemon: simple
     plugs: [network, network-bind]
@@ -280,6 +302,7 @@ apps:
     command-chain:
       - bin/security-secret-store-env-var.sh
     environment:
+      SecretStore_Protocol: http
       SecretStore_TokenFile: $SNAP_DATA/secrets/edgex-support-scheduler/secrets-token.json
     daemon: simple
     plugs: [network, network-bind]
