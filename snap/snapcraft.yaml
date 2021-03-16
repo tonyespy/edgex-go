@@ -350,6 +350,7 @@ apps:
     adapter: none
     command: bin/security-proxy-setup
     environment:
+      KongAuth_OutputPath: $SNAP_DATA/access_token.json
       SecretService_TokenPath: $SNAP_DATA/secrets/edgex-security-proxy-setup/secrets-token.json
       SecretService_CACertPath: $SNAP_DATA/secrets/ca/ca.pem
     plugs: [home, removable-media, network]
