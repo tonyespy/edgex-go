@@ -6,7 +6,7 @@ This folder contains snap packaging for the EdgeX Foundry reference implementati
 The snap contains Consul, Redis, and all of the EdgeX Go-based micro services from
 this repository, device-virtual, as well as Vault, Kong, PostgreSQL.
 
-The project maintains a rolling release of the snap on the `edge` channel that is rebuilt and published at least once daily through the jenkins jobs setup for the EdgeX project.
+The project maintains a rolling release of the snap on the `edge` channel that is rebuilt and published at least once daily.
 
 The snap currently supports running on both `amd64` and `arm64` platforms.
 
@@ -27,24 +27,34 @@ You can see the current revisions available for your machine's architecture by r
 $ snap info edgexfoundry
 ```
 
-The snap can be installed using `snap install`. To install the snap from the edge channel:
+The snap can be installed using `snap install`. To install the latest stable version:
+
+```bash
+$ sudo snap install edgexfoundry
+```
+
+To install the snap from the edge channel:
 
 ```bash
 $ sudo snap install edgexfoundry --edge
 ```
 
-You can specify install specific releases using the `--channel` option. For example to install the Fuji release of the snap:
+**Note** - in general, installing from the edge channel is only recommended for development purposes. Depending on the state of the current development release, your mileage may vary.
+
+
+You can also specify specific releases using the `--channel` option. For example to install the Hanoi release of the snap:
 
 ```bash
-$ sudo snap install edgexfoundry --channel=fuji
+$ sudo snap install edgexfoundry --channel=hanoi
 
 ```
 
 Lastly, on a system supporting it, the snap may be installed using GNOME (or Ubuntu) Software Center by searching for `edgexfoundry`.
 
-**Note** - the snap has only been tested on Ubuntu Desktop/Server versions 18.04 and 16.04, as well as Ubuntu Core versions 16 and 18.
+**Note** - the snap has only been tested on Ubuntu Desktop/Server LTS releases (16.04 or later), as well as Ubuntu Core (16 or later).
 
-**WARNING** - don't install the EdgeX snap on a system which is already running one of the included services (e.g. Consul, Redis, Vault, ...).
+**WARNING** - don't install the EdgeX snap on a system which is already running one of the included services (e.g. Consul, Redis, Vault, ...), as this
+may result in resource conflicts (i.e. ports) which could cause the snap install to fail.
 
 ## Using the EdgeX snap
 
@@ -84,17 +94,16 @@ All services which are installed on the system as systemd units, which if enable
 
 All default configuration files are shipped with the snap inside `$SNAP/config`, however because `$SNAP` isn't writable, all of the config files are copied during snap installation (specifically during the install hook, see `snap/hooks/install` in this repository) to `$SNAP_DATA/config`.
 
-Note - as the core-config-seed was removed as part of the Geneva release, services self-seed their configuration on startup. This means that if a service is
-started by default in the snap, the only way to change configuration is to use the Consul UI or [kv REST API](https://www.consul.io/api/kv.html). Services that
-aren't started by default (see above) *will* pickup any changes made to their config files when enabled.
+**Note** - `$SNAP` resolves to the path `/snap/edgexfoundry/current/` and `$SNAP_DATA` resolves to `/var/snap/edgexfoundry/current`.
 
-```bash
-$ sudo snap restart edgexfoundry
-```
+In the Geneva release of EdgeX, services were changed such that each became responsible for "self-seeding" its own configuration to Consul.
+Currently the only way to effect configuration changes for services that are auto-started (e.g. Core Data, Core Metadata) is to change
+configuration directly via Consul's UI or [kv REST API](https://www.consul.io/api/kv.html). Services that aren't started by default (see above)
+*will* pickup any changes made to their config files when enabled.
 
 ### Viewing logs
 
-Currently, all log files for the snap's can be found inside `$SNAP_COMMON`, which is usually `/var/snap/edgexfoundry/common`. Once all the services are supported as daemons, you can also use `sudo snap logs edgexfoundry` to view logs.
+Currently, all log files for the snap's can be found inside `$SNAP_COMMON` (`/var/snap/edgexfoundry/common`). Once all the services are supported as daemons, you can also use `sudo snap logs edgexfoundry` to view logs.
 
 Additionally, logs can be viewed using the system journal or `snap logs`. To view the logs for all services in the edgexfoundry snap use:
 
@@ -125,20 +134,39 @@ Currently, the security services are enabled by default. The security services c
  * security-secretstore-setup
  * security-proxy-setup
 
-Vault is used for secret management, and Kong is used as an HTTPS proxy for all the services (including Consul).
+#### Secret Store
+Vault is used by EdgeX for secret management (e.g. certificates, keys, passwords, ...) and is referred to as the Secret Store.
 
-Kong can be disabled by using the following command:
-
-```bash
-$ sudo snap set edgexfoundry security-proxy=off
-```
-
-Vault can be also be disabled, but doing so will also disable Kong, as it depends on Vault. Thus the following command will disable both:
+Use of Secret Store by all services can be disabled globally, but doing so will also disable the API Gateway, as it depends on the Secret Store.
+Thus the following command will disable both:
 
 ```bash
 $ sudo snap set edgexfoundry security-secret-store=off
 ```
-**Note** - Kong is currently not supported in the snap when installed on an arm64-based device, so it will be disabled on install.
+
+#### API Gateway
+Kong is used for access control to the EdgeX services from external systems and is referred to as the API Gateway. By default Kong is configured
+with an EdgeX signed TLS certificate. Client validation of this certificate requires the root CA certificate from the EdgeX instance. This file
+(`ca.pem`) can be copied from directory `$SNAP_DATA/secrets/ca`.
+
+Before the API Gateway can be used, a user and group must be created, and a JWT access token generated. All three can be accomplised via the
+`security-proxy-setup-cmd`:
+
+```bash
+$ sudo edgexfoundry.security-proxy-setup-cmd --useradd=me --group=admin
+```
+
+This command outputs the access token to stdout, and also writes it to a file called `$SNAP_DATA/access_token.json`. This JWT token must be included
+via an HTTP `Authorization: Bearer <access-token>` header on any REST calls used to access EdgeX services via the API Gateway.
+
+For more details please refer to the EdgeX API Gateway [documentation](https://docs.edgexfoundry.org/1.3/microservices/security/Ch-APIGateway/).
+
+
+The API Gateway can be disabled by using the following command:
+
+```bash
+$ sudo snap set edgexfoundry security-proxy=off
+```
 
 ## Limitations
 
