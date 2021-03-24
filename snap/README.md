@@ -3,8 +3,8 @@
 
 This folder contains snap packaging for the EdgeX Foundry reference implementation.
 
-The snap contains Consul, Redis, and all of the EdgeX Go-based micro services from
-this repository, device-virtual, as well as Vault, Kong, PostgreSQL.
+The snap contains all of the EdgeX Go-based micro services from this repository, device-virtual, app-service-configurable (for Kuiper
+integration), as well as all the necessary runtime components (e.g. Consul, Kong, Redis, ...) required to run an EdgeX instance.
 
 The project maintains a rolling release of the snap on the `edge` channel that is rebuilt and published at least once daily.
 
@@ -98,14 +98,16 @@ All default configuration files are shipped with the snap inside `$SNAP/config`,
 
 In the Geneva release of EdgeX, services were changed such that each became responsible for "self-seeding" its own configuration to Consul.
 Currently the only way to effect configuration changes for services that are auto-started (e.g. Core Data, Core Metadata) is to change
-configuration directly via Consul's UI or [kv REST API](https://www.consul.io/api/kv.html). Services that aren't started by default (see above)
-*will* pickup any changes made to their config files when enabled.
+configuration directly via Consul's UI or [kv REST API](https://www.consul.io/api/kv.html). Changes made to configuration in Consul
+require services to be restarted in order for the changes to take effect; the one exception are changes made to configuration items in
+a service's ```[Writable]``` section. Services that aren't started by default (see above) *will* pickup any changes made to their config
+files when started.
+
+Also it should be noted that use of Consul is enabled by default in the snap. It is not possible at this time to run the EdgeX services in
+the snap with Consul disabled.
 
 ### Viewing logs
-
-Currently, all log files for the snap's can be found inside `$SNAP_COMMON` (`/var/snap/edgexfoundry/common`). Once all the services are supported as daemons, you can also use `sudo snap logs edgexfoundry` to view logs.
-
-Additionally, logs can be viewed using the system journal or `snap logs`. To view the logs for all services in the edgexfoundry snap use:
+To view the logs for all services in the edgexfoundry snap use:
 
 ```bash
 $ sudo snap logs edgexfoundry
