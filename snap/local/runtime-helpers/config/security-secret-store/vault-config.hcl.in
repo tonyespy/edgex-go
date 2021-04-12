@@ -10,11 +10,11 @@
 listener "tcp" { 
   address = "localhost:8200" 
   tls_disable = "1"
-  cluster_address = "localhost:8201"
-  tls_min_version = "tls12"
-  tls_client_ca_file ="$SNAP_DATA/secrets/ca/ca.pem"
-  tls_cert_file ="$SNAP_DATA/secrets/edgex-vault/server.crt"
-  tls_key_file = "$SNAP_DATA/secrets/edgex-vault/server.key"
+  cluster_address = ""
+  tls_min_version = ""
+  tls_client_ca_file =""
+  tls_cert_file =""
+  tls_key_file = ""
 }
 
 backend "consul" {
