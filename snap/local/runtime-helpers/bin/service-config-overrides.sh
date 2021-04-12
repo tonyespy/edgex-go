@@ -12,6 +12,7 @@ SERVICE=$(basename "$BINPATH")
 logger "edgex service override: SERVICE=$SERVICE"
 
 SERVICE_ENV="$SNAP_DATA/config/$SERVICE/res/$SERVICE.env"
+
 logger "edgex service override: : SERVICE_ENV=$SERVICE_ENV"
 
 if [ -f "$SERVICE_ENV" ]; then
