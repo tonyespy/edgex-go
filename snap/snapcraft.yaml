@@ -180,6 +180,8 @@ apps:
     after: [vault]
     command: >-
       bin/security-secretstore-setup -confdir $SNAP_DATA/config/security-secretstore-setup/res $VAULT_INTERVAL
+    command-chain:
+      - bin/service-config-overrides.sh
     daemon: oneshot
     environment:
       VAULT_INTERVAL: "--vaultInterval=10"
@@ -242,6 +244,7 @@ apps:
     command: bin/core-data -confdir $SNAP_DATA/config/core-data/res --registry
     command-chain:
       - bin/security-secret-store-env-var.sh
+      - bin/service-config-overrides.sh
     environment:
       SecretStore_Protocol: http
       SecretStore_TokenFile: $SNAP_DATA/secrets/edgex-core-data/secrets-token.json
@@ -259,6 +262,7 @@ apps:
     command: bin/core-metadata -confdir $SNAP_DATA/config/core-metadata/res --registry
     command-chain:
       - bin/security-secret-store-env-var.sh
+      - bin/service-config-overrides.sh
     environment:
       SecretStore_Protocol: http
       SecretStore_TokenFile: $SNAP_DATA/secrets/edgex-core-metadata/secrets-token.json
@@ -273,6 +277,7 @@ apps:
     command: bin/core-command -confdir $SNAP_DATA/config/core-command/res --registry
     command-chain:
       - bin/security-secret-store-env-var.sh
+      - bin/service-config-overrides.sh
     environment:
       SecretStore_Protocol: http
       SecretStore_TokenFile: $SNAP_DATA/secrets/edgex-core-command/secrets-token.json
@@ -287,10 +292,13 @@ apps:
     command: bin/support-notifications -confdir $SNAP_DATA/config/support-notifications/res --registry
     command-chain:
       - bin/security-secret-store-env-var.sh
+      - bin/service-config-overrides.sh
     environment:
       SecretStore_Protocol: http
       SecretStore_TokenFile: $SNAP_DATA/secrets/edgex-support-notifications/secrets-token.json
     daemon: simple
+    passthrough:
+      install-mode: disable
     plugs: [network, network-bind]
     stop-timeout: 10s
   support-scheduler:
@@ -301,10 +309,13 @@ apps:
     command: bin/support-scheduler -confdir $SNAP_DATA/config/support-scheduler/res --registry
     command-chain:
       - bin/security-secret-store-env-var.sh
+      - bin/service-config-overrides.sh
     environment:
       SecretStore_Protocol: http
       SecretStore_TokenFile: $SNAP_DATA/secrets/edgex-support-scheduler/secrets-token.json
     daemon: simple
+    passthrough:
+      install-mode: disable
     plugs: [network, network-bind]
     stop-timeout: 10s
   sys-mgmt-agent:
@@ -315,9 +326,12 @@ apps:
     command: bin/sys-mgmt-agent -confdir $SNAP_DATA/config/sys-mgmt-agent/res --registry
     command-chain:
       - bin/security-secret-store-env-var.sh
+      - bin/service-config-overrides.sh
     environment:
       ExecutorPath: $SNAP/bin/sys-mgmt-agent-snap-executor.sh
     daemon: simple
+    passthrough:
+      install-mode: disable
     plugs: [network, network-bind]
   device-virtual:
     adapter: none
@@ -327,7 +341,11 @@ apps:
       - core-data
       - core-metadata
     command: bin/device-virtual $CONF_ARG $PROFILE_ARG $REGISTRY_ARG
+    command-chain:
+      - bin/service-config-overrides.sh
     daemon: simple
+    passthrough:
+      install-mode: disable
     environment:
       CONF_ARG: "--confdir=$SNAP_DATA/config/device-virtual"
       PROFILE_ARG: "--profile=res"
@@ -340,7 +358,11 @@ apps:
       bin/app-service-configurable -cp -r -s
       -confdir $SNAP_DATA/config/app-service-configurable/res
       -profile rules-engine
+    command-chain:
+      - bin/service-config-overrides.sh
     daemon: simple
+    passthrough:
+      install-mode: disable
     environment:
       Binding_PublishTopic: events
       EDGEX_SECURITY_SECRET_STORE: "false"
@@ -431,6 +453,8 @@ apps:
     adapter: full
     command: bin/kuiperd
     daemon: simple
+    passthrough:
+      install-mode: disable
     environment:
       KuiperBaseKey: $SNAP_DATA/kuiper
     plugs: [network, network-bind]
@@ -557,6 +581,17 @@ parts:
     prime:
       - "-*"
     after: [go-build-helper]
+
+  hooks:
+    source: ./hooks
+    plugin: make
+    after: [go115]
+    override-build: |
+      export PATH="$SNAPCRAFT_STAGE/go1.15/bin:$GOPATH/bin:$PATH"
+      cd $SNAPCRAFT_PART_SRC
+      make build
+      install -DT ./cmd/configure/configure "$SNAPCRAFT_PART_INSTALL/snap/hooks/configure"
+      install -DT ./cmd/install/install "$SNAPCRAFT_PART_INSTALL/snap/hooks/install"
 
   consul:
     after: [go115]

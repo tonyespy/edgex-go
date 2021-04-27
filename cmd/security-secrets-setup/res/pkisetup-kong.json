@@ -18,7 +18,7 @@
         "ca_o": "EdgeXFoundry"
     },
     "x509_tls_server_parameters": {
-        "tls_host": "edgex-kong",
+        "tls_host": "localhost",
         "tls_domain": "local",
         "tls_c": "US",
         "tls_st": "CA",

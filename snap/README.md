@@ -125,6 +125,30 @@ Or by using the systemd unit name and `journalctl`:
 $ journalctl -u snap.edgexfoundry.consul
 ```
 
+### Configuration Overrides
+The EdgeX snap supports configuration overrides via its configure and install hooks which generate service-specific .env files
+which are used to provide a custom environment to the service, overriding the default configuration provided by the service's
+```configuration.toml``` file. If a configuration override is made after a service has already started, then the service must
+be **restarted** via command-line (e.g. ```snap restart edgexfoundry.<service>```), snapd's REST API, or the SMA (sys-mgmt-agent).
+If the overrides are provided via the snap configuration defaults capability of a gadget snap, the overrides will be picked
+up when the services are first started.
+
+The following syntax is used to specify service-specific configuration overrides:
+
+```env.<service>.<stanza>.<config option>```
+
+For instance, to setup an override of Core Data's Port use:
+
+```$ sudo snap set env.core-data.service.port=2112```
+
+And restart the service:
+
+```$ sudo snap restart edgexfoundry.core-data```
+
+**Note** - at this time changes to configuration values in the [Writable] section are not supported.
+
+For details on the mapping of configuration options to Config options, please refer to "Service Environment Configuration Overrides".
+
 ### Security services
 
 Currently, the security services are enabled by default. The security services consitute the following components:
@@ -170,9 +194,99 @@ The API Gateway can be disabled by using the following command:
 $ sudo snap set edgexfoundry security-proxy=off
 ```
 
+**Note** - by default all services in the snap except for the API Gateway are restricted to listening on 'localhost' (i.e. the services are
+not addressable from another system). In order to make a service accessible remotely, the appropriate configuration override of the
+'Service.ServerBindAddr' needs to be made (e.g. ```sudo snap set edgexfoundry env.core-data.service.server-bind-addr=0.0.0.0```).
+
 ## Limitations
 
 [See the GitHub issues with label snap for current issues.](https://github.com/edgexfoundry/edgex-go/issues?q=is%3Aopen+is%3Aissue+label%3Asnap)
+
+## Service Environment Configuration Overrides
+**Note** - all of the configuration options below must be specified with the prefix: 'env.<service>.' where '<service>' is one of the following:
+
+  - core-command
+  - core-data
+  - core-metadata
+  - support-notifications
+  - support-scheduler
+  - sys-mgmt-agent
+  - security-proxy
+  - security-secret-store
+  - device-virtual
+  - app-service-config
+
+```
+[Service]
+service.boot-timeout            // Service.BootTimeout
+service.check-interval          // Service.CheckInterval
+service.host                    // Service.Host
+service.server-bind-addr        // Service.ServerBindAddr
+service.port                    // Service.Port
+service.protocol                // Service.Protocol
+service.max-result-count        // Service.MaxResultCount
+service.read-max-limit          // Service_ReadMaxLimit         // app-service-configurable only
+service.startup-msg             // Service.StartupMsg
+service.timeout                 // Service.Timeout
+
+[Clients.CoreData]
+clients.data.port                 // Clients.CoreData.Port
+
+[Clients.MetaData]
+clients.metadata.port             // Clients.MedataData.Port
+
+[Clients.Notifications]
+clients.notifications.port        // Clients.Notifications.Port
+
+[Clients.Scheduler]
+clients.scheduler.port            // Clients.Scheduler.Port   // sys-mgmt-only
+
+[MessageQueue]
+messagequeue.topic                // MessageQueue.Topic       // core-data only
+
+[SecretStore]
+secretstore.additional-retry-attempts    // SecretStore.AdditionalRetryAttempts
+secretstore.retry-wait-period            // SecretStore.RetryWaitPeriod
+```
+
+### API Gateway Settings (prefix: env.security-proxy.)
+
+```add-proxy-route```
+
+The add-proxy-route setting is a csv list of URLs to be added to the
+API Gateway (aka Kong). For references:
+
+https://docs.edgexfoundry.org/1.3/microservices/security/Ch-APIGateway/
+
+NOTE - this setting is not a configuration override, it's a top-level
+environment variable used by the security-proxy-setup.
+
+```
+[AuthType]
+authtype.name                  // AuthType.Name [ 'jwt' (default) or 'oauth2'
+```
+
+### Secret Store Settings (prefix: env.security-secret-store.)
+```add-secretstore-tokens```
+
+The add-secretstore-tokens setting is a csv list of service keys to be added
+to the list of Vault tokens that security-file-token-provider (launched by
+security-secretstore-setup) creates.
+
+NOTE - this setting is not a configuration override, it's a top-level
+environment variable used by the security-secretstore-setup.
+
+### Support Notifications Settings (prefix: env.support-notifications.)
+```
+[Smtp]
+smtp.host                      // Smtp.Host
+smtp.username                  // Smtp.Username
+smtp.password                  // Smtp.Password
+smtp.port                      // Smtp.Port
+smtp.sender                    // Smtp.Sender
+smtp.enable-self-signed-cert   // Smtp.EnableSelfSignedCert
+
+```
 
 ## Building
 
