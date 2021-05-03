@@ -144,8 +144,8 @@ var ConfToEnv = map[string]string{
 	//
 	"add-proxy-route": "ADD_PROXY_ROUTE",
 
-	// [AuthType]
-	"authtype.name": "AUTHTYPE_NAME",
+	// [KongAuth]
+	"kongauth.name": "KONGAUTH_NAME",
 
 	// security-secret-store
 	//
