@@ -139,7 +139,7 @@ The following syntax is used to specify service-specific configuration overrides
 
 For instance, to setup an override of Core Data's Port use:
 
-```$ sudo snap set env.core-data.service.port=2112```
+```$ sudo snap set edgexfoundry env.core-data.service.port=2112```
 
 And restart the service:
 

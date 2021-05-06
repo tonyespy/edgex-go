@@ -23,7 +23,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/canonical/edgex-go/hooks"
+	hooks "github.com/canonical/edgex-snap-hooks"
 )
 
 var cli *hooks.CtlCli = hooks.NewSnapCtl()
@@ -270,16 +270,10 @@ func main() {
 		debug = true
 	}
 
-	if err = hooks.InitLog(debug); err != nil {
-		fmt.Println(fmt.Sprintf("edgexfoundry:install: creating new syslog instance failed: %v", err))
+	if err = hooks.Init(debug, "edgexfoundry"); err != nil {
+		fmt.Println(fmt.Sprintf("edgexfoundry:install: initialization failure: %v", err))
 		os.Exit(1)
 
-	}
-
-	// populate globals for SNAP* env vars
-	if err = hooks.GetEnvVars(); err != nil {
-		hooks.Error(fmt.Sprintf("edgexfoundry:install: %v", err))
-		os.Exit(1)
 	}
 
 	if err = installConfFiles(); err != nil {
@@ -329,7 +323,7 @@ func main() {
 
 		if envJSON != "" {
 			hooks.Debug(fmt.Sprintf("edgexfoundry:install: service envJSON: %s", envJSON))
-			if err := hooks.HandleEdgeXConfig(v, envJSON); err != nil {
+			if err := hooks.HandleEdgeXConfig(v, envJSON, nil); err != nil {
 				hooks.Error(fmt.Sprintf("edgexfoundry:install failed to process service %s configuration - %v", v, err))
 				os.Exit(1)
 			}
