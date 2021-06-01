@@ -1,6 +1,43 @@
 # EdgeX Foundry Core Snap
 [![snap store badge](https://raw.githubusercontent.com/snapcore/snap-store-badges/master/EN/%5BEN%5D-snap-store-black-uneditable.png)](https://snapcraft.io/edgexfoundry)
 
+
+  * [Overview](#overview)
+  * [Installation](#installation)
+    + [Installing snapd](#installing-snapd)
+    + [Installing EdgeX Foundry as a snap](#installing-edgex-foundry-as-a-snap)
+  * [Using the EdgeX snap](#using-the-edgex-snap)
+    + [Configuring individual services](#configuring-individual-services)
+    + [Viewing logs](#viewing-logs)
+    + [Configuration overrides](#configuration-overrides)
+    + [Security services](#security-services)
+      - [Secret Store](#secret-store)
+      - [API Gateway](#api-gateway)
+        * [API Gateway user setup](#api-gateway-user-setup)
+          + [JWT tokens](#jwt-tokens)
+          + [OAuth 2.0](#oauth-20)
+        * [API Gateway TLS certificate setup](#api-gateway-tls-certificate-setup)
+  * [Limitations](#limitations)
+  * [Service environment configuration overrides](#service-environment-configuration-overrides)
+    + [API Gateway settings](#api-gateway-settings-prefix-envsecurity-proxy)
+    + [Secret Store settings](#secret-store-settings-prefix-envsecurity-secret-store)
+    + [Support Notifications settings](#support-notifications-settings-prefix-envsupport-notifications)
+  * [Building](#building)
+    + [Installing snapcraft](#installing-snapcraft)
+      - [Running snapcraft on MacOS](#running-snapcraft-on-macos)
+      - [Running snapcraft on Windows](#running-snapcraft-on-windows)
+    + [Building with Multipass](#building-with-multipass)
+    + [Building with LXD containers](#building-with-lxd-containers)
+    + [Building inside external container/VM using native snapcraft](#building-inside-external-containervm-using-native-snapcraft)
+      - [LXD](#lxd)
+      - [Docker](#docker)
+      - [Multipass / Generic VM](#multipass--generic-vm)
+    + [Developing the snap](#developing-the-snap)
+      - [Interfaces](#interfaces)
+
+---
+## Overview
+
 This folder contains snap packaging for the EdgeX Foundry reference implementation.
 
 The snap contains all of the EdgeX Go-based micro services from this repository, device-virtual, app-service-configurable (for Kuiper
@@ -17,7 +54,7 @@ The snap can be installed on any system that supports snaps. You can see how to 
 snaps on your system [here](https://snapcraft.io/docs/installing-snapd).
 
 However for full security confinement, the snap should be installed on an 
-Ubuntu 16.04 LTS or later Desktop or Server, or a system running Ubuntu Core 16 or later.
+Ubuntu 18.04 LTS or later Desktop or Server, or a system running Ubuntu Core 18 or later.
 
 ### Installing EdgeX Foundry as a snap
 The snap is published in the snap store at https://snapcraft.io/edgexfoundry.
@@ -170,7 +207,7 @@ Thus the following command will disable both:
 $ sudo snap set edgexfoundry security-secret-store=off
 ```
 
-### API Gateway 
+#### API Gateway
 Kong is used for access control to the EdgeX services from external systems and is referred to as the API Gateway. 
 
 For more details please refer to the EdgeX API Gateway [documentation](https://docs.edgexfoundry.org/1.3/microservices/security/Ch-APIGateway/).
@@ -187,9 +224,9 @@ not addressable from another system). In order to make a service accessible remo
 'Service.ServerBindAddr' needs to be made (e.g. ```sudo snap set edgexfoundry env.core-data.service.server-bind-addr=0.0.0.0```).
 
 
-#### API Gateway User Setup
+#### API Gateway user setup
 
-##### JWT Tokens
+##### JWT tokens
 
 Before the API Gateway can be used, a user and group must be created, and a JWT access token generated. This can be accomplised via the
 `secrets-config` command, or by using `snap set` commands.
@@ -315,7 +352,7 @@ The token can then be used as before:
 curl -k -X GET https://localhost:8443/coredata/api/v1/ping? -H "Authorization: Bearer $TOKEN"
 ```
 
-#### API Gateway TLS Certificate Setup
+#### API Gateway TLS certificate setup
 
 By default Kong is configured with an EdgeX signed TLS certificate. Client validation of this certificate requires the root CA certificate from the EdgeX instance. This file
 (`ca.pem`) can be copied from directory `$SNAP_DATA/secrets/ca`.
@@ -363,15 +400,11 @@ $ sudo snap set edgexfoundry env.security-proxy.tls-private-key="$(cat server.ke
 $ curl -v --cacert /var/snap/edgeca/current/CA.pem -X GET https://server01:8443/coredata/api/v1/ping? -H "Authorization: Bearer $TOKEN"
 ```
 
-
-
-
-
 ## Limitations
 
 [See the GitHub issues with label snap for current issues.](https://github.com/edgexfoundry/edgex-go/issues?q=is%3Aopen+is%3Aissue+label%3Asnap)
 
-## Service Environment Configuration Overrides
+## Service environment configuration overrides
 **Note** - all of the configuration options below must be specified with the prefix: 'env.<service>.' where '<service>' is one of the following:
 
   - core-command
@@ -418,7 +451,7 @@ secretstore.additional-retry-attempts    // SecretStore.AdditionalRetryAttempts
 secretstore.retry-wait-period            // SecretStore.RetryWaitPeriod
 ```
 
-### API Gateway Settings (prefix: env.security-proxy.)
+### API Gateway settings (prefix: env.security-proxy.)
 
 ```add-proxy-route```
 
@@ -436,7 +469,7 @@ environment variable used by the security-proxy-setup.
 kongauth.name                  // KongAuth.Name [ 'jwt' (default) or 'oauth2'
 ```
 
-### Secret Store Settings (prefix: env.security-secret-store.)
+### Secret Store settings (prefix: env.security-secret-store.)
 ```add-secretstore-tokens```
 
 The add-secretstore-tokens setting is a csv list of service keys to be added
@@ -446,7 +479,7 @@ security-secretstore-setup) creates.
 NOTE - this setting is not a configuration override, it's a top-level
 environment variable used by the security-secretstore-setup.
 
-### Support Notifications Settings (prefix: env.support-notifications.)
+### Support Notifications settings (prefix: env.support-notifications.)
 ```
 [Smtp]
 smtp.host                      // Smtp.Host
