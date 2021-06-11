@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
 	hooks "github.com/canonical/edgex-snap-hooks"
 )
@@ -232,8 +233,11 @@ func installProxy() error {
 		return err
 	}
 
+	// ensure prefix uses the 'current' symlink in it's path, otherwise refreshes to a
+	// new snap revision will break
+	snapDataCurr := strings.Replace(hooks.SnapData, hooks.SnapRev, "current", 1)
 	rStrings := map[string]string{
-		"#prefix = /usr/local/kong/":  "prefix = " + hooks.SnapData + "/kong",
+		"#prefix = /usr/local/kong/":  "prefix = " + snapDataCurr + "/kong",
 		"#nginx_user = nobody nobody": "nginx_user = root root",
 	}
 
