@@ -31,9 +31,11 @@ var cli *hooks.CtlCli = hooks.NewSnapCtl()
 
 const proxyRouteCfg = "env.security-proxy.add-proxy-route"
 
-var services = []string{"security-file-token-provider",
+var services = []string{
+	"security-bootstrapper",
+	"security-bootstrap-redis",
+	"security-file-token-provider",
 	"security-proxy-setup",
-	"security-secrets-setup",
 	"security-secretstore-setup",
 	"core-command",
 	"core-data",
@@ -42,7 +44,6 @@ var services = []string{"security-file-token-provider",
 	"support-scheduler",
 	"sys-mgmt-agent",
 	"device-virtual",
-	"security-bootstrap-redis",
 	"app-service-configurable",
 }
 
@@ -53,12 +54,19 @@ func installConfFiles() error {
 	// TODO: should we continue to do this, since config overrides are
 	// the preferred way to make configuration changes now?
 	for _, v := range services {
-		var destDir string = hooks.SnapDataConf + "/" + v + "/res"
-		var srcDir string = hooks.SnapConf + "/" + v + "/res"
+		destDir := hooks.SnapDataConf + "/"
+		srcDir := hooks.SnapConf + "/"
 
-		if v == "app-service-configurable" {
-			destDir = destDir + "/rules-engine"
-			srcDir = srcDir + "/rules-engine"
+		// handle exceptions (i.e. config in non-std dirs)
+		if v == "security-bootstrap-redis" {
+			destDir = destDir + "security-bootstrapper/res-bootstrap-redis"
+			srcDir = srcDir + "security-bootstrapper/res-bootstrap-redis"
+		} else if v == "app-service-configurable" {
+			destDir = destDir + v + "/res/rules-engine"
+			srcDir = srcDir + "/res/rules-engine"
+		} else {
+			destDir = destDir + v + "/res"
+			srcDir = srcDir + v + "/res"
 		}
 
 		if err = os.MkdirAll(destDir, 0755); err != nil {
@@ -77,20 +85,41 @@ func installConfFiles() error {
 	return nil
 }
 
+// installDevices installs device-virtual's static device files to $SNAP_DATA
+func installDevices() error {
+	var err error
+
+	destDir := hooks.SnapDataConf + "/device-virtual/res/devices"
+	destPath := destDir + "/devices.toml"
+	srcPath := hooks.SnapConf + "/device-virtual/res/devices/devices.toml"
+
+	if err = os.MkdirAll(destDir, 0755); err != nil {
+		return err
+	}
+
+	if err = hooks.CopyFile(srcPath, destPath); err != nil {
+		return err
+	}
+
+	return nil
+}
 // installDevProfiles installs device-virtual's device profiles to $SNAP_DATA
 func installDevProfiles() error {
+	var err error
 	profiles := []string{"bool", "float", "int", "uint", "binary"}
 
-	srcDir := hooks.SnapConf + "/device-virtual/res"
-	destDir := hooks.SnapDataConf + "/device-virtual/res"
+	srcDir := hooks.SnapConf + "/device-virtual/res/profiles"
+	destDir := hooks.SnapDataConf + "/device-virtual/res/profiles"
+	if err = os.MkdirAll(destDir, 0755); err != nil {
+		return err
+	}
 
 	for _, v := range profiles {
 		fileName := "/device.virtual." + v + ".yaml"
 		srcPath := srcDir + fileName
 		destPath := destDir + fileName
 
-		err := hooks.CopyFile(srcPath, destPath)
-		if err != nil {
+		if err = hooks.CopyFile(srcPath, destPath); err != nil {
 			return err
 		}
 	}
@@ -124,27 +153,20 @@ func installKuiper() error {
 func installSecretStore() error {
 	var err error
 
-	if err = os.MkdirAll(hooks.SnapDataConf+"/security-secrets-setup/res", 0755); err != nil {
-		return err
-	}
-
-	path := "/security-secrets-setup/res/pkisetup-"
-	kongPath := path + "kong.json"
-	if err = hooks.CopyFile(hooks.SnapConf+kongPath, hooks.SnapDataConf+kongPath); err != nil {
-		return err
-	}
-
-	vaultPath := path + "vault.json"
-	if err = hooks.CopyFile(hooks.SnapConf+vaultPath, hooks.SnapDataConf+vaultPath); err != nil {
-		return err
-	}
-
 	if err = os.MkdirAll(hooks.SnapData+"/secrets", 0700); err != nil {
 		return err
 	}
 
-	path = "/security-file-token-provider/res/token-config.json"
+	path := "/security-file-token-provider/res/token-config.json"
 	if err = hooks.CopyFile(hooks.SnapConf+path, hooks.SnapDataConf+path); err != nil {
+		return err
+	}
+
+	// install the template config yaml file for securing Kong's admin
+	// APIs in security-secretstore-setup service
+	path = "/security-secretstore-setup/res/kong-admin-config.template.yml"
+	err = hooks.CopyFile(hooks.SnapConf+path, hooks.SnapDataConf+path)
+	if err != nil {
 		return err
 	}
 
@@ -169,18 +191,11 @@ func installSecretStore() error {
 func installConsul() error {
 	var err error
 
-	if err = os.MkdirAll(hooks.SnapData+"/consul/data", 0755); err != nil {
-		return err
-	}
-
 	if err = os.MkdirAll(hooks.SnapData+"/consul/config", 0755); err != nil {
 		return err
 	}
 
-	// consul config file used to disable DNS
-	srcPath := "/consul/basic_config.json"
-	destPath := "/consul/config/basic_config.json"
-	if err = hooks.CopyFile(hooks.SnapConf+srcPath, hooks.SnapData+destPath); err != nil {
+	if err = os.MkdirAll(hooks.SnapData+"/consul/data", 0755); err != nil {
 		return err
 	}
 
@@ -281,7 +296,12 @@ func main() {
 	}
 
 	if err = installConfFiles(); err != nil {
-		hooks.Error(fmt.Sprintf("edgex-asc:install: %v", err))
+		hooks.Error(fmt.Sprintf("edgexfoundry:install: %v", err))
+		os.Exit(1)
+	}
+
+	if err = installDevices(); err != nil {
+		hooks.Error(fmt.Sprintf("edgexfoundry:install: %v", err))
 		os.Exit(1)
 	}
 

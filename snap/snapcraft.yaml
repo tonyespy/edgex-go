@@ -402,6 +402,8 @@ apps:
     plugs: [home, removable-media, network]
   secrets-config:
     adapter: none
+    # double-check with bnevis that this is OK, as there is an individual config.toml
+    # file for the secrets-config command
     # not a mistake--secrets-config re-uses security-proxy-setup's configuration.toml
     command: bin/secrets-config -confdir $SNAP_DATA/config/security-proxy-setup/res
     plugs: [home, removable-media, network]
@@ -472,24 +474,16 @@ apps:
     plugs: [home, removable-media, network]
   kuiper:
     adapter: full
-    command: bin/kuiper-server
+    command: bin/kuiperd
     daemon: simple
     passthrough:
       install-mode: disable    
     environment:
       KuiperBaseKey: $SNAP_DATA/kuiper
-      # KUIPER_DEBUG: "true"
-      KUIPER_CONSOLE_LOG: "true"
-      KUIPER_REST_PORT: 48075
-      EDGEX_SERVER: localhost
-      EDGEX_SERVICE_SERVER: http://localhost:59880
-      EDGEX_TOPIC: events
-      EDGEX_PROTOCOL: tcp
-      EDGEX_PORT: 5566
     plugs: [network, network-bind]
   kuiper-cli:
     adapter: full
-    command: bin/kuiper-cli
+    command: bin/kuiper
     environment:
       KuiperBaseKey: $SNAP_DATA/kuiper
     plugs: [home, network, network-bind]
@@ -827,7 +821,6 @@ parts:
           "$SNAPCRAFT_PART_INSTALL/config/device-virtual/res/devices/devices.toml"
 
       mkdir -p $SNAPCRAFT_PART_INSTALL/config/device-virtual/res/profiles
-
       for profileType in bool float int uint binary; do
         install -T "./cmd/res/profiles/device.virtual.$profileType.yaml" \
           "$SNAPCRAFT_PART_INSTALL/config/device-virtual/res/profiles/device.virtual.$profileType.yaml"
@@ -852,25 +845,44 @@ parts:
 
   kuiper:
     source: https://github.com/emqx/kuiper.git
-    source-tag: 0.4.1
+    source-tag: 1.2.1-beta.1
     plugin: make
     after: [go-build-helper]
     override-build: |
+      export PATH="$SNAPCRAFT_STAGE/go1.15/bin:$GOPATH/bin:$PATH"
+
+      cd $SNAPCRAFT_PART_SRC
       export BUILD_PATH=$SNAPCRAFT_PART_BUILD
       export PACKAGES_PATH=$SNAPCRAFT_PART_INSTALL
-      go mod tidy
       make build_with_edgex
       make real_pkg
       cd $SNAPCRAFT_PART_INSTALL
+      # TODO: SIMPLIFY THIS!!!
       tar -xvf kuiper*.tar.gz --strip-components=1
       rm *.zip *.gz
 
+      # configure logging & restrict to localhost
+      sed -i -e 's@consoleLog\: false@consoleLog\: true@' \
+        -e 's@fileLog\: true@fileLog\: false@' \
+        -e 's@ip\: 0.0.0.0@ip\: localhost@' \
+        -e 's@restIp\: 0.0.0.0@restIp\: localhost@' \
+        $SNAPCRAFT_PART_INSTALL/etc/kuiper.yaml
+
+      # update the edgex source's port to 5566 to match
+      # app-service-configurable's message bus publish port
+      sed -i -e 's@port\: 5563@port\: 5566@' \
+        $SNAPCRAFT_PART_INSTALL/etc/sources/edgex.yaml
+
+      # update the edgex sink's port to 5567 so that it
+      # doesn't collide with the default port used by
+      # app-service-configurable
+      sed -i -e 's@"default": 5563@"default": 5567@' \
+        $SNAPCRAFT_PART_INSTALL/etc/sinks/edgex.json
+
       install -DT "$SNAPCRAFT_PART_SRC/LICENSE" \
          "$SNAPCRAFT_PART_INSTALL/usr/share/doc/kuiper/LICENSE"
-    organize:
-      bin/cli: bin/kuiper-cli
-      bin/server: bin/kuiper-server
     stage:
       - -etc/mqtt_source.yaml
+      - -etc/services/
     stage-packages:
       - libzmq5
