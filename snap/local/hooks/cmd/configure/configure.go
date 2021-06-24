@@ -40,6 +40,12 @@ const (
 	OFF = "off"
 )
 
+var extraConfToEnv = map[string]string{
+
+	"add-known-secrets":      "ADD_KNOWN_SECRETS",
+	"add-registry-acl-roles": "ADD_REGISTRY_ACL_ROLES",
+}
+
 // handleSingleService starts or stops a service based on
 // the given state (ON|OFF). It also ensures that the top
 // level service configuration option is set accordingly.
@@ -122,7 +128,7 @@ func handleAllServices() error {
 
 		if envJSON != "" {
 			hooks.Debug(fmt.Sprintf("edgexfoundry:configure: service: %s envJSON: %s", s, envJSON))
-			if err := hooks.HandleEdgeXConfig(s, envJSON, nil); err != nil {
+			if err := hooks.HandleEdgeXConfig(s, envJSON, extraConfToEnv); err != nil {
 				return err
 			}
 		}

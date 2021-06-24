@@ -29,9 +29,9 @@ import (
 
 var cli *hooks.CtlCli = hooks.NewSnapCtl()
 
-const proxyRouteCfg = "env.security-proxy-setup.add-proxy-route"
-const secretStoreAddTokensCfg = "env.security-secretstore-setup.add-secretstore-tokens"
-const secretStoreAddKnownSecretsCfg = "env.security-secretstore-setup.add-known-secrets"
+const proxyRouteCfg = "env.security-proxy.add-proxy-route"
+const secretStoreAddTokensCfg = "env.security-secret-store.add-secretstore-tokens"
+const secretStoreAddKnownSecretsCfg = "env.security-secret-store.add-known-secrets"
 const consulAddRegistryACLRolesCfg = "env.security-bootstrapper.add-registry-acl-roles"
 const secretStoreTokens = "app-http-export,app-mqtt-export,device-camera,device-mqtt,device-modbus"
 const secretStoreKnownSecrets = "" +
@@ -58,12 +58,6 @@ var services = []string{
 	"sys-mgmt-agent",
 	"device-virtual",
 	"app-service-configurable",
-}
-
-var extraConfToEnv = map[string]string{
-
-	"add-known-secrets":      "ADD_KNOWN_SECRETS",
-	"add-registry-acl-roles": "ADD_REGISTRY_ACL_ROLES",
 }
 
 // installConfFiles copies service configuration.toml files from $SNAP to $SNAP_DATA
@@ -369,24 +363,5 @@ func main() {
 	if err = installRedis(); err != nil {
 		hooks.Error(fmt.Sprintf("edgexfoundry:install %v", err))
 		os.Exit(1)
-	}
-
-	// just like the configure hook, this code needs to iterate over every service
-	// and setup .env files for each if required...
-	for _, v := range hooks.Services {
-		serviceCfg := hooks.EnvConfig + "." + v
-		envJSON, err := cli.Config(serviceCfg)
-		if err != nil {
-			hooks.Error(fmt.Sprintf("edgexfoundry:install failed to read service %s configuration - %v", v, err))
-			os.Exit(1)
-		}
-
-		if envJSON != "" {
-			hooks.Debug(fmt.Sprintf("edgexfoundry:install: service envJSON: %s", envJSON))
-			if err := hooks.HandleEdgeXConfig(v, envJSON, extraConfToEnv); err != nil {
-				hooks.Error(fmt.Sprintf("edgexfoundry:install failed to process service %s configuration - %v", v, err))
-				os.Exit(1)
-			}
-		}
 	}
 }
