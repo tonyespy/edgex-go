@@ -807,6 +807,7 @@ parts:
   device-virtual-go:
     source: https://github.com/edgexfoundry/device-virtual-go.git
     source-depth: 1
+    # TODO: ideally this should be changed to v2.0.0
     source-tag: master
     plugin: make
     after: [go-build-helper]
@@ -835,6 +836,7 @@ parts:
   # TODO: vet all the correct files are available...
   app-service-config:
     plugin: nil
+    # TODO: get rid of edge channel!!!
     stage-snaps:
       - edgex-app-service-configurable/edge
     stage:
@@ -846,7 +848,7 @@ parts:
 
   kuiper:
     source: https://github.com/emqx/kuiper.git
-    source-tag: 1.2.1-beta.1
+    source-tag: 1.2.1
     plugin: make
     after: [go-build-helper]
     override-build: |
