@@ -412,14 +412,6 @@ Example: `snap set edgexfoundry env.device-virtual.service.port=7777`
 |messagequeue.secret-name|  SecretName is the name of the secret in the SecretStore that contains the Auth Credentials. The credential are dynamically loaded using this name and store the Option property below where the implementation expected to find them.|
 |messagequeue.subscribe-enabled| SubscribeEnabled indicates whether enable the subscription to the Message Queue|
 
-
-
-
-| [SecretStore]   | Description |
-| --------------------- | ----------- |
-| secretstore.additional-retry-attempts | |
-| secretstore.retry-wait-period ||
-
 | [Trigger]   | Description |
 | --------------------- | ----------- |
 | trigger.edgex-message-bus.subscribe-host.port||
@@ -431,7 +423,7 @@ Example: `snap set edgexfoundry env.device-virtual.service.port=7777`
 
 
 
-### API Gateway settings (prefix: env.security-proxy-setup.)
+### API Gateway settings (prefix: env.security-proxy.)
 
 
 
@@ -440,14 +432,12 @@ Example: `snap set edgexfoundry env.device-virtual.service.port=7777`
 | add-proxy-route | The add-proxy-route setting is a csv list of URLs to be added to the API Gateway (aka Kong). See [documentation](https://docs.edgexfoundry.org/1.3/microservices/security/Ch-APIGateway/) NOTE - this setting is not a configuration override, it's a top-level environment variable used by the security-proxy-setup. |
 
 
-
-
-### Secret Store settings (prefix: env.security-secretstore-setup.)
+### Secret Store settings (prefix: env.security-secret-store.)
 
 | API Gateway setting   | Description |
 | --------------------- | ----------- |
-| add-secretstore-tokens | The add-secretstore-tokens setting is a csv list of service keys to be added to the list of Vault tokens that security-file-token-provider (launched by security-secretstore-setup) creates. NOTE - this setting is not a configuration override, it's a top-level environment variable used by the security-secretstore-setup. |
-|add-known-secrets | |
+| add-secretstore-tokens | The add-secretstore-tokens setting is a csv list of service keys to be added to the list of Vault tokens that security-file-token-provider (launched by security-secretstore-setup) creates. It is set to a default list of additional services by the snap, so be sure to examine the default setting before providing a custom list of services. NOTE - this setting is not a configuration override, it's a top-level environment variable used by the security-secretstore-setup. |
+| add-known-secrets | The add-known-secrets setting is a csv list of secret paths and associated services. It's used to provision the specified secret for the given service in Vault. It is set to a default list of additional services by the snap, so be sure to examine the default setting before providing a custom list of services. NOTE - this setting is not a configuration override, it's a top-level environment variable used by the security-secretstore-setup.|
 
 
 ### Security bootstrapper settings (prefix: env.security-bootstrapper.)
