@@ -226,7 +226,7 @@ apps:
     adapter: none
     after:
       - security-secretstore-setup
-    command: bin/security-bootstrapper -confdir $SNAP_DATA/config/security-bootstrapper/res-bootstrap-redis configureRedis
+    command: bin/setup-redis-acl.sh
     environment:
       # TODO: determine the correct cmd-line args & env var overrides...
       SECRETSTORE_SERVERNAME: localhost
