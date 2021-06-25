@@ -30,8 +30,8 @@ import (
 var cli *hooks.CtlCli = hooks.NewSnapCtl()
 
 const proxyRouteCfg = "env.security-proxy.add-proxy-route"
-const secretStoreAddTokensCfg = "env.security-secretstore.add-secretstore-tokens"
-const secretStoreAddKnownSecretsCfg = "env.security-secretstore.add-known-secrets"
+const secretStoreAddTokensCfg = "env.security-secret-store.add-secretstore-tokens"
+const secretStoreAddKnownSecretsCfg = "env.security-secret-store.add-known-secrets"
 const consulAddRegistryACLRolesCfg = "env.security-bootstrapper.add-registry-acl-roles"
 
 // device-rest and device-virtual are both on the /cmd/security-file-token-provider/res/token-config.json file,
