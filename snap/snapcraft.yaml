@@ -642,6 +642,13 @@ parts:
     override-build: |
       cd $SNAPCRAFT_PART_SRC
 
+      GIT_VERSION=$(git describe --tags --abbrev=0 | sed 's/v//')
+      if [ -z "$GIT_VERSION" ]; then
+        GIT_VERSION="0.0.0"
+      fi
+
+      echo $GIT_VERSION > ./VERSION
+
       make build
 
       # copy service binaries, configuration, and license files into the snap install
